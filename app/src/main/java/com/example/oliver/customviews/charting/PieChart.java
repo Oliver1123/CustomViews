@@ -691,19 +691,26 @@ public class PieChart extends ViewGroup {
             mLinesPaint.setColor(mLinesColor);
             mLinesPaint.setStrokeWidth(mLinesWidth);
 
-            for (Item it : mData) {
+            for (int i = 0; i < mData.size(); i++) {
                 // draw slice
+                Item it = mData.get(i);
                 canvas.drawArc(mPieBounds,
                         180 + it.mStartAngle,
                         it.mEndAngle - it.mStartAngle,
                         true, mPiePaint);
+
                 // draw icon
                 it.mMatrix.reset();
                 it.mMatrix.setRotate(it.mCenterAngle, mPieBounds.centerX(), mPieBounds.centerY());
                 it.mMatrix.preTranslate((mPieBounds.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
                         mPieBounds.centerY() - it.mIcon.getHeight() / 2);
-                // todo rotate icon before drawing
-                canvas.drawBitmap(it.mIcon, it.mMatrix, mPiePaint);
+
+                Bitmap rotatedIcon  = rotateBitmap(it.mIcon, -90);
+//                Log.d("tag", "icon.Width: " + it.mIcon.getWidth() + " , icon.Height: " + it.mIcon.getHeight());
+//                Log.d("tag", "Ricon.Width: " + rotatedIcon.getWidth() + " , Ricon.Height: " + rotatedIcon.getHeight());
+//                canvas.drawBitmap(it.mIcon, it.mMatrix, mPiePaint);
+                canvas.drawBitmap(rotatedIcon, it.mMatrix, mPiePaint);
+
 
                 // draw lines around slice
                 canvas.drawArc(mPieBounds,
