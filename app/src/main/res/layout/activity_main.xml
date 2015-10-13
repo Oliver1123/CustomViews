@@ -1,0 +1,27 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:custom="http://schemas.android.com/apk/com.example.oliver.customviews"
+              android:layout_height="match_parent"
+                android:layout_width="match_parent"
+                android:orientation="vertical">
+    <com.example.oliver.customviews.charting.PieChart
+        android:id="@+id/Pie"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:background="@android:color/white"
+
+        custom:segmentsColor="@android:color/holo_red_dark"
+        custom:linesColor="@android:color/holo_blue_dark"
+        custom:autoCenterPointerInSlice="true"
+        custom:highlightStrength="2.5"
+        custom:pieStyle="full"
+        custom:pieRotation="1"
+        custom:innerRadius="60dp"
+        />
+    <Button
+        android:id="@+id/Reset"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/reset_button"
+        />
+</LinearLayout>

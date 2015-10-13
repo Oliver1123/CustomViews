@@ -1,13 +1,16 @@
 package com.example.oliver.customviews.charting;
 
+/**
+ * Created by oliver on 07.10.15.
+ */
+
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.BitmapShader;
+import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -15,9 +18,9 @@ import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.SweepGradient;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -32,66 +35,78 @@ import java.util.List;
 /**
  * Custom view that shows a pie chart and, optionally, a label.
  */
-public class PieChart extends ViewGroup {
+public class PieChartOrigin extends ViewGroup {
     private List<Item> mData = new ArrayList<Item>();
 
+    private float mTotal = 0.0f;
 
     private RectF mPieBounds = new RectF();
 
     private Paint mPiePaint;
-    private Paint mLinesPaint;
+    private Paint mTextPaint;
+    private Paint mShadowPaint;
+
+    private boolean mShowText = false;
+
+    private float mTextX = 0.0f;
+    private float mTextY = 0.0f;
+    private float mTextWidth = 0.0f;
+    private float mTextHeight = 0.0f;
+    private int mTextPos = TEXTPOS_LEFT;
+
+    private float mHighlightStrength = 1.15f;
+
+    private float mPointerRadius = 2.0f;
+    private float mPointerX;
+    private float mPointerY;
 
     private int mPieRotation;
 
-    private OnSelectedItemChangeListener mSelectedItemChangeListener = null;
-    private OnItemCLickListener mItemClickListener= null;
+    private OnCurrentItemChangedListener mCurrentItemChangedListener = null;
 
+    private int mTextColor;
     private PieView mPieView;
     private Scroller mScroller;
     private ValueAnimator mScrollAnimator;
     private GestureDetector mDetector;
-//    private PointerView mPointerView;
+    private PointerView mPointerView;
 
-    // The angle at which we measure the current item.
-//    private int mCurrentItemAngle;
+    // The angle at which we measure the current item. This is
+    // where the pointer points.
+    private int mCurrentItemAngle;
 
     // the index of the current item.
-    private int mSelectedItem = -1;
+    private int mCurrentItem = 0;
     private boolean mAutoCenterInSlice;
     private ObjectAnimator mAutoCenterAnimator;
+    private RectF mShadowBounds = new RectF();
 
-    //////////////////////////
-    public static int PIE_STYLE_FULL    = 0;
-    public static int PIE_STYLE_HALF    = 1;
-    public static int PIE_STYLE_QUARTER = 2;
-    private int mLinesColor;
-    private int mSegmentsColor;
-    private int mSelectedItemColor;
-    private float mLinesWidth;
-    private int mPieStyle;
-    private float mInnerRadius;
-    private float mIconWidth;
-    private float mIconHeight;
+    /**
+     * Draw text to the left of the pie chart
+     */
+    public static final int TEXTPOS_LEFT = 0;
 
-    //////////////////////////
+    /**
+     * Draw text to the right of the pie chart
+     */
+    public static final int TEXTPOS_RIGHT = 1;
+
     /**
      * The initial fling velocity is divided by this amount.
      */
     public static final int FLING_VELOCITY_DOWNSCALE = 4;
 
+    /**
+     *
+     */
     public static final int AUTOCENTER_ANIM_DURATION = 250;
-
 
     /**
      * Interface definition for a callback to be invoked when the current
      * item changes.
      */
-    public interface OnSelectedItemChangeListener {
-        void OnSelectedItemChange(PieChart source, int currentItem);
-    }
-
-    public interface OnItemCLickListener {
-        void OnItemCLick(PieChart source, int currentItem);
+    public interface OnCurrentItemChangedListener {
+        void OnCurrentItemChanged(PieChartOrigin source, int currentItem);
     }
 
     /**
@@ -100,9 +115,8 @@ public class PieChart extends ViewGroup {
      *
      * @param context
      */
-    public PieChart(Context context) {
+    public PieChartOrigin(Context context) {
         super(context);
-        Log.d("tag", "PieChart constructor context");
         init();
     }
 
@@ -113,12 +127,11 @@ public class PieChart extends ViewGroup {
      *
      * @param context
      * @param attrs   An attribute set which can contain attributes from
-     *                from {@link View}.
+     *                from {@link android.view.View}.
      */
-    public PieChart(Context context, AttributeSet attrs) {
+    public PieChartOrigin(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        Log.d("tag", "PieChart constructor context, attrs");
         // attrs contains the raw values for the XML attributes
         // that were specified in the layout, which don't include
         // attributes set by styles or themes, and which may have
@@ -132,124 +145,183 @@ public class PieChart extends ViewGroup {
                 R.styleable.PieChart,
                 0, 0
         );
-            Log.d("tag", a.toString());
+
         try {
             // Retrieve the values from the TypedArray and store into
             // fields of this class.
             //
             // The R.styleable.PieChart_* constants represent the index for
             // each custom attribute in the R.styleable.PieChart array.
-
-            mAutoCenterInSlice  = a.getBoolean(R.styleable.PieChart_autoCenterPointerInSlice, false);
-            mLinesWidth         = a.getDimension(R.styleable.PieChart_linesWidth, 5.0f);
-            mLinesColor         = a.getColor(R.styleable.PieChart_linesColor, Color.BLACK);
-            mSegmentsColor      = a.getColor(R.styleable.PieChart_segmentsColor, Color.YELLOW);
-            mSelectedItemColor  = a.getColor(R.styleable.PieChart_selectedItemColor, Color.RED);
-
-            mPieStyle = a.getInteger(R.styleable.PieChart_pieStyle, 0);
-            mPieRotation = a.getInt(R.styleable.PieChart_pieRotation, 0);
-            mInnerRadius = a.getDimension(R.styleable.PieChart_innerRadius, 60.0f);
-            mIconWidth = a.getDimension(R.styleable.PieChart_iconWidth, 120.0f);
-            mIconHeight = a.getDimension(R.styleable.PieChart_iconHeight, 120.0f);
+//                mShowText = a.getBoolean(R.styleable.PieChart_showText, false);
+//                mTextY = a.getDimension(R.styleable.PieChart_labelY, 0.0f);
+//                mTextWidth = a.getDimension(R.styleable.PieChart_labelWidth, 0.0f);
+//                mTextHeight = a.getDimension(R.styleable.PieChart_labelHeight, 0.0f);
+//                mTextPos = a.getInteger(R.styleable.PieChart_labelPosition, 0);
+//                mTextColor = a.getColor(R.styleable.PieChart_labelColor, 0xff000000);
+//                mHighlightStrength = a.getFloat(R.styleable.PieChart_highlightStrength, 1.0f);
+//                mPieRotation = a.getInt(R.styleable.PieChart_pieRotation, 0);
+//                mPointerRadius = a.getDimension(R.styleable.PieChart_pointerRadius, 2.0f);
+//                mAutoCenterInSlice = a.getBoolean(R.styleable.PieChart_autoCenterPointerInSlice, false);
         } finally {
             // release the TypedArray so that it can be reused.
             a.recycle();
         }
+
         init();
     }
 
-
-    public int getLinesColor() {
-        return mLinesColor;
+    /**
+     * Returns true if the text label should be visible.
+     *
+     * @return True if the text label should be visible, false otherwise.
+     */
+    public boolean getShowText() {
+        return mShowText;
     }
 
-    public void setLinesColor(int linesColor) {
-        mLinesColor = linesColor;
+    /**
+     * Controls whether the text label is visible or not. Setting this property to
+     * false allows the pie chart graphic to take up the entire visible area of
+     * the control.
+     *
+     * @param showText true if the text label should be visible, false otherwise
+     */
+    public void setShowText(boolean showText) {
+        mShowText = showText;
         invalidate();
-        requestLayout();
-
     }
 
-    public int getSegmentsColor() {
-        return mSegmentsColor;
+    /**
+     * Returns the Y position of the label text, in pixels.
+     *
+     * @return The Y position of the label text, in pixels.
+     */
+    public float getTextY() {
+        return mTextY;
     }
 
-    public void setSegmentsColor(int segmentsColor) {
-        mSegmentsColor = segmentsColor;
+    /**
+     * Set the Y position of the label text, in pixels.
+     *
+     * @param textY the Y position of the label text, in pixels.
+     */
+    public void setTextY(float textY) {
+        mTextY = textY;
         invalidate();
-        requestLayout();
-    }
-    public int getSelectedItemColor() {
-        return mSelectedItemColor;
     }
 
-    public void setSelectedItemColor(int selectedItemColor) {
-        mSelectedItemColor = selectedItemColor;
+    /**
+     * Returns the width reserved for label text, in pixels.
+     *
+     * @return The width reserved for label text, in pixels.
+     */
+    public float getTextWidth() {
+        return mTextWidth;
+    }
+
+    /**
+     * Set the width of the area reserved for label text. This width is constant; it does not
+     * change based on the actual width of the label as the label text changes.
+     *
+     * @param textWidth The width reserved for label text, in pixels.
+     */
+    public void setTextWidth(float textWidth) {
+        mTextWidth = textWidth;
         invalidate();
-        requestLayout();
     }
 
-    public float getLinesWidth() {
-        return mLinesWidth;
+    /**
+     * Returns the height of the label font, in pixels.
+     *
+     * @return The height of the label font, in pixels.
+     */
+    public float getTextHeight() {
+        return mTextHeight;
     }
 
-    public void setLinesWidth(float linesWidth) {
-        mLinesWidth = linesWidth;
+    /**
+     * Set the height of the label font, in pixels.
+     *
+     * @param textHeight The height of the label font, in pixels.
+     */
+    public void setTextHeight(float textHeight) {
+        mTextHeight = textHeight;
         invalidate();
-        requestLayout();
-
     }
 
-    public int getPieStyle() {
-        return mPieStyle;
+    /**
+     * Returns a value that specifies whether the label text is to the right
+     * or the left of the pie chart graphic.
+     *
+     * @return One of TEXTPOS_LEFT or TEXTPOS_RIGHT.
+     */
+    public int getTextPos() {
+        return mTextPos;
     }
 
-    public void setPieStyle(int pieStyle) {
-        if (pieStyle != PIE_STYLE_FULL && pieStyle != PIE_STYLE_HALF && pieStyle != PIE_STYLE_QUARTER) {
+    /**
+     * Set a value that specifies whether the label text is to the right
+     * or the left of the pie chart graphic.
+     *
+     * @param textPos TEXTPOS_LEFT to draw the text to the left of the graphic,
+     *                or TEXTPOS_RIGHT to draw the text to the right of the graphic.
+     */
+    public void setTextPos(int textPos) {
+        if (textPos != TEXTPOS_LEFT && textPos != TEXTPOS_RIGHT) {
             throw new IllegalArgumentException(
-                    "PieStyle must be one of PIE_STYLE_FULL, PIE_STYLE_HALF or PIE_STYLE_QUARTER");
+                    "TextPos must be one of TEXTPOS_LEFT or TEXTPOS_RIGHT");
         }
-        mPieStyle = pieStyle;
+        mTextPos = textPos;
         invalidate();
-        requestLayout();
-
     }
 
-    public float getInnerRadius() {
-        return mInnerRadius;
+    /**
+     * Returns the strength of the highlighting applied to each pie segment.
+     *
+     * @return The highlight strength.
+     */
+    public float getHighlightStrength() {
+        return mHighlightStrength;
     }
 
-    public void setInnerRadius(float innerRadius) {
-        if (innerRadius < 0)
-            throw new IllegalArgumentException("InnerRadius cannot be negative");
-        mInnerRadius = innerRadius;
+    /**
+     * Set the strength of the highlighting that is applied to each pie segment.
+     * This number is a floating point number that is multiplied by the base color of
+     * each segment to get the highlight color. A value of exactly one produces no
+     * highlight at all. Values greater than one produce highlights that are lighter
+     * than the base color, while values less than one produce highlights that are darker
+     * than the base color.
+     *
+     * @param highlightStrength The highlight strength.
+     */
+    public void setHighlightStrength(float highlightStrength) {
+        if (highlightStrength < 0.0f) {
+            throw new IllegalArgumentException(
+                    "highlight strength cannot be negative");
+        }
+        mHighlightStrength = highlightStrength;
         invalidate();
-        requestLayout();
     }
 
-
-    public float getIconWidth() {
-        return mIconWidth;
+    /**
+     * Returns the radius of the filled circle that is drawn at the tip of the current-item
+     * pointer.
+     *
+     * @return The radius of the pointer tip, in pixels.
+     */
+    public float getPointerRadius() {
+        return mPointerRadius;
     }
 
-    public void setIconWidth(float iconWidth) {
-        if (iconWidth < 0)
-            throw new IllegalArgumentException("IconWidth cannot be negative");
-        mIconWidth = iconWidth;
+    /**
+     * Set the radius of the filled circle that is drawn at the tip of the current-item
+     * pointer.
+     *
+     * @param pointerRadius The radius of the pointer tip, in pixels.
+     */
+    public void setPointerRadius(float pointerRadius) {
+        mPointerRadius = pointerRadius;
         invalidate();
-        requestLayout();
-    }
-
-    public float getIconHeight() {
-        return mIconHeight;
-    }
-
-    public void setIconHeight(float iconHeight) {
-        if (iconHeight < 0)
-            throw new IllegalArgumentException("IconHeight cannot be negative");
-        mIconHeight = iconHeight;
-        invalidate();
-        requestLayout();
     }
 
     /**
@@ -272,7 +344,7 @@ public class PieChart extends ViewGroup {
         mPieRotation = rotation;
         mPieView.rotateTo(rotation);
 
-//        calcSelectedItem();
+        calcCurrentItem();
     }
 
     /**
@@ -280,39 +352,38 @@ public class PieChart extends ViewGroup {
      *
      * @return The zero-based index of the currently selected data item.
      */
-    public int getSelectedItem() {
-        return mSelectedItem;
+    public int getCurrentItem() {
+        return mCurrentItem;
     }
 
     /**
-     * Set the selected item. Calling this function will select item
+     * Set the currently selected item. Calling this function will set the current selection
      * and rotate the pie to bring it into view.
      *
-     * @param selectedItem The zero-based index of the item to select.
+     * @param currentItem The zero-based index of the item to select.
      */
-    public void setSelectedItem(int selectedItem) {
-        setSelectedItem(selectedItem, true);
+    public void setCurrentItem(int currentItem) {
+        setCurrentItem(currentItem, true);
     }
 
     /**
-     * Set the selected  item by index. Optionally, scroll the selected item into view. This version
+     * Set the current item by index. Optionally, scroll the current item into view. This version
      * is for internal use--the scrollIntoView option is always true for external callers.
      *
-     * @param selectedItem    The index of the selected item.
-     * @param scrollIntoView True if the pie should rotate until the selected item is centered.
+     * @param currentItem    The index of the current item.
+     * @param scrollIntoView True if the pie should rotate until the current item is centered.
      *                       False otherwise. If this parameter is false, the pie rotation
      *                       will not change.
      */
-    private void setSelectedItem(int selectedItem, boolean scrollIntoView) {
-        mSelectedItem = selectedItem;
-        if (mSelectedItemChangeListener != null) {
-            mSelectedItemChangeListener.OnSelectedItemChange(this, selectedItem);
+    private void setCurrentItem(int currentItem, boolean scrollIntoView) {
+        mCurrentItem = currentItem;
+        if (mCurrentItemChangedListener != null) {
+            mCurrentItemChangedListener.OnCurrentItemChanged(this, currentItem);
         }
         if (scrollIntoView) {
-//            centerOnCurrentItem();
+            centerOnCurrentItem();
         }
         invalidate();
-        requestLayout();
     }
 
 
@@ -322,19 +393,8 @@ public class PieChart extends ViewGroup {
      * @param listener Can be null.
      *                 The current item changed listener to attach to this view.
      */
-    public void setOnSelectedItemChangeListener(OnSelectedItemChangeListener listener) {
-        mSelectedItemChangeListener = listener;
-    }
-
-    /**
-     * Register a callback to be invoked when click the item changes.
-     *
-     * @param listener Can be null.
-     *                 The Item Click listener to attach to this view.
-     */
-    public void setItemClickListener(OnItemCLickListener listener) {
-//        centerOnCurrentItem();
-        mItemClickListener = listener;
+    public void setOnCurrentItemChangedListener(OnCurrentItemChangedListener listener) {
+        mCurrentItemChangedListener = listener;
     }
 
     /**
@@ -342,27 +402,32 @@ public class PieChart extends ViewGroup {
      * size is proportional to the item's value. As new items are added, the size of each
      * existing slice is recalculated so that the proportions remain correct.
      *
-     * return The index of the newly added item.
+     * @param label The label text to be shown when this item is selected.
+     * @param value The value of this item.
+     * @param color The ARGB color of the pie slice associated with this item.
+     * @return The index of the newly added item.
      */
-    public int addItem(Bitmap icon) {
+    public int addItem(String label, float value, int color) {
         Item it = new Item();
-        it.mIcon = Bitmap.createScaledBitmap(icon, (int)mIconWidth, (int)mIconHeight, true);
+        it.mLabel = label;
+        it.mColor = color;
+        it.mValue = value;
+
+        // Calculate the highlight color. Saturate at 0xff to make sure that high values
+        // don't result in aliasing.
+        it.mHighlight = Color.argb(
+                0xff,
+                Math.min((int) (mHighlightStrength * (float) Color.red(color)), 0xff),
+                Math.min((int) (mHighlightStrength * (float) Color.green(color)), 0xff),
+                Math.min((int) (mHighlightStrength * (float) Color.blue(color)), 0xff)
+        );
+        mTotal += value;
 
         mData.add(it);
 
         onDataChanged();
 
         return mData.size() - 1;
-    }
-
-    public int addItem(int iconID) {
-        Bitmap icon = BitmapFactory.decodeResource(getResources(), iconID);
-        return addItem(icon);
-    }
-    public int addItem(String iconFileName) {
-
-        Bitmap icon = BitmapFactory.decodeFile(iconFileName);
-        return addItem(icon);
     }
 
 
@@ -384,6 +449,7 @@ public class PieChart extends ViewGroup {
         return result;
     }
 
+
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         // Do nothing. Do not call the superclass method--that would start a layout pass
@@ -395,17 +461,37 @@ public class PieChart extends ViewGroup {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        // Draw the shadow
+        canvas.drawOval(mShadowBounds, mShadowPaint);
+
+        // Draw the label text
+        if (getShowText()) {
+            canvas.drawText(mData.get(mCurrentItem).mLabel, mTextX, mTextY, mTextPaint);
+        }
+
+        // If the API level is less than 11, we can't rely on the view animation system to
+        // do the scrolling animation. Need to tick it here and call postInvalidate() until the scrolling is done.
+        if (Build.VERSION.SDK_INT < 11) {
+            tickScrollAnimation();
+            if (!mScroller.isFinished()) {
+                postInvalidate();
+            }
+        }
     }
 
 
+    //
+    // Measurement functions. This example uses a simple heuristic: it assumes that
+    // the pie chart should be at least as wide as its label.
+    //
     @Override
     protected int getSuggestedMinimumWidth() {
-        return (int) (mInnerRadius + getIconWidth() + mLinesWidth) * 2;
+        return (int) mTextWidth * 2;
     }
 
     @Override
     protected int getSuggestedMinimumHeight() {
-        return (int) (mInnerRadius + getIconHeight() + mLinesWidth) * 2;
+        return (int) mTextWidth;
     }
 
     @Override
@@ -417,8 +503,8 @@ public class PieChart extends ViewGroup {
 
         // Whatever the width ends up being, ask for a height that would let the pie
         // get as big as it can
-        int minh = getPaddingBottom() + getPaddingTop() + getSuggestedMinimumHeight();
-        int h = Math.max(minh, MeasureSpec.getSize(heightMeasureSpec));
+        int minh = (w - (int) mTextWidth) + getPaddingBottom() + getPaddingTop();
+        int h = Math.min(MeasureSpec.getSize(heightMeasureSpec), minh);
 
         setMeasuredDimension(w, h);
     }
@@ -427,9 +513,15 @@ public class PieChart extends ViewGroup {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
 
+        //
+        // Set dimensions for text, pie chart, etc
+        //
         // Account for padding
         float xpad = (float) (getPaddingLeft() + getPaddingRight());
         float ypad = (float) (getPaddingTop() + getPaddingBottom());
+
+        // Account for the label
+        if (mShowText) xpad += mTextWidth;
 
         float ww = (float) w - xpad;
         float hh = (float) h - ypad;
@@ -443,34 +535,68 @@ public class PieChart extends ViewGroup {
                 diameter);
         mPieBounds.offsetTo(getPaddingLeft(), getPaddingTop());
 
+        mPointerY = mTextY - (mTextHeight / 2.0f);
+        float pointerOffset = mPieBounds.centerY() - mPointerY;
+
+        // Make adjustments based on text position
+        if (mTextPos == TEXTPOS_LEFT) {
+            mTextPaint.setTextAlign(Paint.Align.RIGHT);
+            if (mShowText) mPieBounds.offset(mTextWidth, 0.0f);
+            mTextX = mPieBounds.left;
+
+            if (pointerOffset < 0) {
+                pointerOffset = -pointerOffset;
+                mCurrentItemAngle = 225;
+            } else {
+                mCurrentItemAngle = 135;
+            }
+            mPointerX = mPieBounds.centerX() - pointerOffset;
+        } else {
+            mTextPaint.setTextAlign(Paint.Align.LEFT);
+            mTextX = mPieBounds.right;
+
+            if (pointerOffset < 0) {
+                pointerOffset = -pointerOffset;
+                mCurrentItemAngle = 315;
+            } else {
+                mCurrentItemAngle = 45;
+            }
+            mPointerX = mPieBounds.centerX() + pointerOffset;
+        }
+
+        mShadowBounds = new RectF(
+                mPieBounds.left + 10,
+                mPieBounds.bottom + 10,
+                mPieBounds.right - 10,
+                mPieBounds.bottom + 20);
 
         // Lay out the child view that actually draws the pie.
         mPieView.layout((int) mPieBounds.left,
                 (int) mPieBounds.top,
                 (int) mPieBounds.right,
                 (int) mPieBounds.bottom);
-
         mPieView.setPivot(mPieBounds.width() / 2, mPieBounds.height() / 2);
 
+        mPointerView.layout(0, 0, w, h);
         onDataChanged();
     }
 
     /**
-     * Calculate which pie slice is selected, and set the current item
+     * Calculate which pie slice is under the pointer, and set the current item
      * field accordingly.
      */
-//    private void calcSelectedItem() {
-//        int pointerAngle = (mCurrentItemAngle + 360 + mPieRotation) % 360;
-//        for (int i = 0; i < mData.size(); ++i) {
-//            Item it = mData.get(i);
-//            if (it.mStartAngle <= pointerAngle && pointerAngle <= it.mEndAngle) {
-//                if (i != mSelectedItem) {
-//                    setSelectedItem(i, false);
-//                }
-//                break;
-//            }
-//        }
-//    }
+    private void calcCurrentItem() {
+        int pointerAngle = (mCurrentItemAngle + 360 + mPieRotation) % 360;
+        for (int i = 0; i < mData.size(); ++i) {
+            Item it = mData.get(i);
+            if (it.mStartAngle <= pointerAngle && pointerAngle <= it.mEndAngle) {
+                if (i != mCurrentItem) {
+                    setCurrentItem(i, false);
+                }
+                break;
+            }
+        }
+    }
 
     /**
      * Do all of the recalculations needed when the data array changes.
@@ -479,18 +605,37 @@ public class PieChart extends ViewGroup {
         // When the data changes, we have to recalculate
         // all of the angles.
         int currentAngle = 0;
-        int itemAngle = (int)360.0f / mData.size();
-        for (int i = 0; i < mData.size(); i++) {
-            Item it = mData.get(i);
-            // change item angles
+        for (Item it : mData) {
             it.mStartAngle = currentAngle;
-            it.mEndAngle = it.mStartAngle + itemAngle;
+            it.mEndAngle = (int) ((float) currentAngle + it.mValue * 360.0f / mTotal);
             currentAngle = it.mEndAngle;
-            // rotate icon
-            it.mCenterAngle = it.mStartAngle  + (it.mEndAngle - it.mStartAngle) / 2;
-        }
 
-//        calcSelectedItem();
+
+            // Recalculate the gradient shaders. There are
+            // three values in this gradient, even though only
+            // two are necessary, in order to work around
+            // a bug in certain versions of the graphics engine
+            // that expects at least three values if the
+            // positions array is non-null.
+            //
+            it.mShader = new SweepGradient(
+                    mPieBounds.width() / 2.0f,
+                    mPieBounds.height() / 2.0f,
+                    new int[]{
+                            it.mHighlight,
+                            it.mHighlight,
+                            it.mColor,
+                            it.mColor,
+                    },
+                    new float[]{
+                            0,
+                            (float) (360 - it.mEndAngle) / 360.0f,
+                            (float) (360 - it.mStartAngle) / 360.0f,
+                            1.0f
+                    }
+            );
+        }
+        calcCurrentItem();
         onScrollFinished();
     }
 
@@ -503,19 +648,24 @@ public class PieChart extends ViewGroup {
         // filter won't work.
         setLayerToSW(this);
 
+        // Set up the paint for the label text
+        mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mTextPaint.setColor(mTextColor);
+        if (mTextHeight == 0) {
+            mTextHeight = mTextPaint.getTextSize();
+        } else {
+            mTextPaint.setTextSize(mTextHeight);
+        }
+
         // Set up the paint for the pie slices
         mPiePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPiePaint.setStyle(Paint.Style.FILL_AND_STROKE);
-        mPiePaint.setStrokeWidth(mLinesWidth);
-        mPiePaint.setColor(mSegmentsColor);
-
-        // Set up the paint for the lines
-        mLinesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mLinesPaint.setStyle(Paint.Style.STROKE);
-        mLinesPaint.setColor(mLinesColor);
-        mLinesPaint.setStrokeWidth(mLinesWidth);
+        mPiePaint.setStyle(Paint.Style.FILL);
+        mPiePaint.setTextSize(mTextHeight);
 
         // Set up the paint for the shadow
+        mShadowPaint = new Paint(0);
+        mShadowPaint.setColor(0xff101010);
+        mShadowPaint.setMaskFilter(new BlurMaskFilter(8, BlurMaskFilter.Blur.NORMAL));
 
         // Add a child view to draw the pie. Putting this in a child view
         // makes it possible to draw it on a separate hardware layer that rotates
@@ -524,10 +674,15 @@ public class PieChart extends ViewGroup {
         addView(mPieView);
         mPieView.rotateTo(mPieRotation);
 
+        // The pointer doesn't need hardware acceleration, but in order to show up
+        // in front of the pie it also needs to be on a separate view.
+        mPointerView = new PointerView(getContext());
+        addView(mPointerView);
+
         // Set up an animator to animate the PieRotation property. This is used to
         // correct the pie's orientation after the user lets go of it.
         if (Build.VERSION.SDK_INT >= 11) {
-            mAutoCenterAnimator = ObjectAnimator.ofInt(PieChart.this, "PieRotation", 0);
+            mAutoCenterAnimator = ObjectAnimator.ofInt(PieChartOrigin.this, "PieRotation", 0);
 
             // Add a listener to hook the onAnimationEnd event so that we can do
             // some cleanup when the pie stops moving.
@@ -549,9 +704,11 @@ public class PieChart extends ViewGroup {
 
 
         // Create a Scroller to handle the fling gesture.
-
+        if (Build.VERSION.SDK_INT < 11) {
+            mScroller = new Scroller(getContext());
+        } else {
             mScroller = new Scroller(getContext(), null, true);
-
+        }
         // The scroller doesn't have any built-in animation functions--it just supplies
         // values when we ask it to. So we have to have a way to call it every frame
         // until the fling ends. This code (ab)uses a ValueAnimator object to generate
@@ -566,7 +723,7 @@ public class PieChart extends ViewGroup {
         }
 
         // Create a gesture detector to handle onTouch messages
-        mDetector = new GestureDetector(PieChart.this.getContext(), new GestureListener());
+        mDetector = new GestureDetector(PieChartOrigin.this.getContext(), new GestureListener());
 
         // Turn off long press--this control doesn't use it, and if long press is enabled,
         // you can't scroll for a bit, pause, then scroll some more (the pause is interpreted
@@ -576,10 +733,14 @@ public class PieChart extends ViewGroup {
 
         // In edit mode it's nice to have some demo data, so add that here.
         if (this.isInEditMode()) {
-            addItem(R.mipmap.ic_launcher);
-            addItem(R.mipmap.ic_launcher);
-            addItem(R.mipmap.ic_launcher);
+            Resources res = getResources();
+            addItem("Annabelle", 3, res.getColor(R.color.bluegrass));
+            addItem("Brunhilde", 4, res.getColor(R.color.chartreuse));
+            addItem("Carolina", 2, res.getColor(R.color.emerald));
+            addItem("Dahlia", 3, res.getColor(R.color.seafoam));
+            addItem("Ekaterina", 1, res.getColor(R.color.slate));
         }
+
     }
 
     private void tickScrollAnimation() {
@@ -623,7 +784,7 @@ public class PieChart extends ViewGroup {
      */
     private void onScrollFinished() {
         if (mAutoCenterInSlice) {
-//            centerOnCurrentItem();
+            centerOnCurrentItem();
         } else {
             mPieView.decelerate();
         }
@@ -633,21 +794,21 @@ public class PieChart extends ViewGroup {
      * Kicks off an animation that will result in the pointer being centered in the
      * pie slice of the currently selected item.
      */
-//    private void centerOnCurrentItem() {
-//        Item current = mData.get(getSelectedItem());
-//        int targetAngle = current.mStartAngle + (current.mEndAngle - current.mStartAngle) / 2;
-//        targetAngle -= mCurrentItemAngle;
-//        if (targetAngle < 90 && mPieRotation > 180) targetAngle += 360;
-//
-//        if (Build.VERSION.SDK_INT >= 11) {
-//            // Fancy animated version
-//            mAutoCenterAnimator.setIntValues(targetAngle);
-//            mAutoCenterAnimator.setDuration(AUTOCENTER_ANIM_DURATION).start();
-//        } else {
-//            // Dull non-animated version
-////            mPieView.rotateTo(targetAngle);
-//        }
-//    }
+    private void centerOnCurrentItem() {
+        Item current = mData.get(getCurrentItem());
+        int targetAngle = current.mStartAngle + (current.mEndAngle - current.mStartAngle) / 2;
+        targetAngle -= mCurrentItemAngle;
+        if (targetAngle < 90 && mPieRotation > 180) targetAngle += 360;
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            // Fancy animated version
+            mAutoCenterAnimator.setIntValues(targetAngle);
+            mAutoCenterAnimator.setDuration(AUTOCENTER_ANIM_DURATION).start();
+        } else {
+            // Dull non-animated version
+            //mPieView.rotateTo(targetAngle);
+        }
+    }
 
     /**
      * Internal child class that draws the pie chart onto a separate hardware layer
@@ -685,71 +846,28 @@ public class PieChart extends ViewGroup {
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            mPiePaint.setColor(mSegmentsColor);
 
-            mLinesPaint.setStyle(Paint.Style.STROKE);
-            mLinesPaint.setColor(mLinesColor);
-            mLinesPaint.setStrokeWidth(mLinesWidth);
+            if (Build.VERSION.SDK_INT < 11) {
+                mTransform.set(canvas.getMatrix());
+                mTransform.preRotate(mRotation, mPivot.x, mPivot.y);
+                canvas.setMatrix(mTransform);
+            }
 
             for (Item it : mData) {
-                // draw slice
-                canvas.drawArc(mPieBounds,
-                        180 + it.mStartAngle,
+                mPiePaint.setShader(it.mShader);
+                canvas.drawArc(mBounds,
+                        360 - it.mEndAngle,
                         it.mEndAngle - it.mStartAngle,
                         true, mPiePaint);
-                // draw icon
-                it.mMatrix.reset();
-                it.mMatrix.setRotate(it.mCenterAngle, mPieBounds.centerX(), mPieBounds.centerY());
-                it.mMatrix.preTranslate((mPieBounds.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
-                        mPieBounds.centerY() - it.mIcon.getHeight() / 2);
-                // todo rotate icon before drawing
-                canvas.drawBitmap(it.mIcon, it.mMatrix, mPiePaint);
-
-                // draw lines around slice
-                canvas.drawArc(mPieBounds,
-                        180 + it.mStartAngle,
-                        it.mEndAngle - it.mStartAngle,
-                        true, mLinesPaint);
             }
-            // draw selected Item if exist
-            if (getSelectedItem() != -1) {
-                Item item = mData.get(getSelectedItem());
-                mPiePaint.setColor(mSelectedItemColor);
-                canvas.drawArc(mPieBounds,
-                        360 - item.mEndAngle,
-                        item.mEndAngle - item.mStartAngle,
-                        true, mPiePaint);
-            }
-
-            // draw circle in Center
-            mLinesPaint.setStyle(Paint.Style.FILL);
-            canvas.drawArc(mCenterBounds, 0, 360, false, mLinesPaint);
-
-
-            mLinesPaint.setStyle(Paint.Style.STROKE);
-            mLinesPaint.setColor(mSelectedItemColor);
-            mLinesPaint.setStrokeWidth(4 * mLinesWidth);
-            canvas.drawArc(mCenterBounds, 0, 360, false, mLinesPaint);
-
-//             draw outer border
-            mLinesPaint.setColor(mLinesColor);
-            mLinesPaint.setStrokeWidth(2 * mLinesWidth);
-            canvas.drawArc(mPieBounds, 0, 360, false, mLinesPaint);
         }
 
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            int linesWidth = (int) mLinesWidth;
-            mPieBounds = new RectF(linesWidth, linesWidth, w - linesWidth, h - linesWidth);
-            int centerX = w / 2;
-            int centerY = h / 2;
-            mCenterBounds = new RectF(centerX - mInnerRadius, centerY - mInnerRadius,
-                                        centerX + mInnerRadius, centerY + mInnerRadius);
-
+            mBounds = new RectF(0, 0, w, h);
         }
 
-        RectF mPieBounds, mCenterBounds;
-
+        RectF mBounds;
 
         public void rotateTo(float pieRotation) {
             mRotation = pieRotation;
@@ -772,19 +890,41 @@ public class PieChart extends ViewGroup {
         }
     }
 
+    /**
+     * View that draws the pointer on top of the pie chart
+     */
+    private class PointerView extends View {
+
+        /**
+         * Construct a PointerView object
+         *
+         * @param context
+         */
+        public PointerView(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            canvas.drawLine(mTextX, mPointerY, mPointerX, mPointerY, mTextPaint);
+            canvas.drawCircle(mPointerX, mPointerY, mPointerRadius, mTextPaint);
+        }
+    }
 
     /**
      * Maintains the state for a data item.
      */
     private class Item {
-        public Bitmap mIcon;
+        public String mLabel;
+        public float mValue;
+        public int mColor;
 
         // computed values
         public int mStartAngle;
         public int mEndAngle;
-        public int mCenterAngle;
-        public Matrix mMatrix = new Matrix();
 
+        public int mHighlight;
+        public Shader mShader;
     }
 
     /**
@@ -840,17 +980,6 @@ public class PieChart extends ViewGroup {
             }
             return true;
         }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            float tapX = e.getX();
-            float tapY = e.getY();
-            // Todo find in which slice was click and call onItemClick
-            Log.d("tag", "onSingleTapUp (" + tapX + ", " + tapY + ")");
-            return true;
-        }
-
-
     }
 
     private boolean isAnimationRunning() {
@@ -871,7 +1000,7 @@ public class PieChart extends ViewGroup {
         float l = (float) Math.sqrt(dx * dx + dy * dy);
 
         // decide if the scalar should be negative or positive by finding
-        // the dot product of the vector perpendicular to (x,y). 
+        // the dot product of the vector perpendicular to (x,y).
         float crossX = -y;
         float crossY = x;
 
@@ -881,9 +1010,6 @@ public class PieChart extends ViewGroup {
         return l * sign;
     }
 
-    public  Bitmap rotateBitmap(Bitmap source, float angle) {
-        Matrix matrix = new Matrix();
-        matrix.postRotate(angle);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
-    }
+
 }
+
