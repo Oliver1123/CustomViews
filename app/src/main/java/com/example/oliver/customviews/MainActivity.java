@@ -19,7 +19,7 @@ import com.example.oliver.customviews.charting.PieChart;
 
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PieChart.OnItemCLickListener {
     private int[] colors = {Color.BLACK, Color.GRAY, Color.GREEN, Color.CYAN, Color.RED, Color.YELLOW};
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -29,20 +29,23 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         final PieChart pie = (PieChart) this.findViewById(R.id.Pie);
+        pie.setItemClickListener(this);
 //        pie.setLinesColor(Color.RED);
 //
 //        float px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, res.getDisplayMetrics());
 //        pie.setLinesWidth(px);
 
         pie.addItem(R.mipmap.ic_launcher);
+        pie.addItem(R.drawable.ic_phone_main);
         pie.addItem(R.mipmap.ic_launcher);
-        pie.addItem(R.mipmap.ic_launcher);
-        pie.addItem(R.mipmap.ic_launcher);
-        pie.addItem(R.mipmap.ic_launcher);
+        pie.addItem(R.drawable.ic_map_main);
+//        pie.addItem(R.mipmap.ic_launcher);
 //        pie.addItem(R.drawable.ic_link_main);
-//        pie.addItem(R.drawable.ic_map_main);
-//        pie.addItem(R.drawable.ic_phone_main);
+//        pie.addItem(R.mipmap.ic_launcher);
 //        pie.addItem(R.drawable.ic_search);
+//        pie.addItem(R.mipmap.ic_launcher);
+//        pie.addItem(R.drawable.ic_search);
+//        pie.addItem(R.mipmap.ic_launcher);
 
         ((Button) findViewById(R.id.Reset)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
@@ -51,5 +54,10 @@ public class MainActivity extends AppCompatActivity {
                 pie.setSelectedItem(1);
             }
         });
+    }
+
+    @Override
+    public void OnItemCLick(PieChart source, int currentItem) {
+        Log.d("tag", "MainActivity PieChart.OnItemClick on item " + currentItem);
     }
 }
