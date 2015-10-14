@@ -479,17 +479,19 @@ public class PieChart extends ViewGroup {
         // When the data changes, we have to recalculate
         // all of the angles.
         int currentAngle = 0;
-        int itemAngle = (int)360.0f / mData.size();
+        int itemAngle = Math.round(360.0f / mData.size());
         for (int i = 0; i < mData.size(); i++) {
             Item it = mData.get(i);
             // change item angles
             it.mStartAngle = currentAngle;
             it.mEndAngle = it.mStartAngle + itemAngle;
             currentAngle = it.mEndAngle;
+//            Log.d("tag", "it[" + i + "] sA:" + it.mStartAngle + ", eA: " + it.mEndAngle);
             // rotate icon
             it.mCenterAngle = it.mStartAngle  + (it.mEndAngle - it.mStartAngle) / 2;
         }
-
+        // if there are free space in chart
+        mData.get(mData.size() - 1).mEndAngle = 360;
 //        calcSelectedItem();
         onScrollFinished();
     }
