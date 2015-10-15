@@ -389,8 +389,8 @@ public class PieChart extends ViewGroup {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        Log.d("tag", "PieChart onDraw");
-//        mPieView.invalidate();
+//        Log.d("tag", "PieChart onDraw");
+
     }
 
 
@@ -665,15 +665,21 @@ public class PieChart extends ViewGroup {
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            Log.d("tag", "PieView onDraw");
+//            Log.d("tag", "PieView onDraw");
             mPiePaint.setColor(mSegmentsColor);
 
             mLinesPaint.setStyle(Paint.Style.STROKE);
             mLinesPaint.setColor(mLinesColor);
             mLinesPaint.setStrokeWidth(mLinesWidth);
-
+            int selectedItem = getSelectedItem();
             for (int i = 0; i < mData.size(); i++) {
                 // draw slice
+                if (i == selectedItem) {
+                    mPiePaint.setColor(mSelectedItemColor);
+                } else {
+                    mPiePaint.setColor(mSegmentsColor);
+                }
+
                 Item it = mData.get(i);
                 canvas.drawArc(mPieBounds,
                         180 + it.mStartAngle,
@@ -696,24 +702,7 @@ public class PieChart extends ViewGroup {
                         it.mEndAngle - it.mStartAngle,
                         true, mLinesPaint);
             }
-            Log.d("tag", "selectedItem: " + getSelectedItem());
-            // draw selected Item if exist
-            if (getSelectedItem() != -1) {
-                Item it = mData.get(getSelectedItem());
-                mPiePaint.setColor(mSelectedItemColor);
-                canvas.drawArc(mPieBounds,
-                        180 + it.mStartAngle,
-                        it.mEndAngle - it.mStartAngle,
-                        true, mPiePaint);
-                // draw icon
-                it.mMatrix.reset();
-                it.mMatrix.setRotate(it.mCenterAngle, mPieBounds.centerX(), mPieBounds.centerY());
-                it.mMatrix.preTranslate((mPieBounds.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
-                        mPieBounds.centerY() - it.mIcon.getHeight() / 2);
-
-                Bitmap rotatedIcon  = rotateBitmap(it.mIcon, -90);
-                canvas.drawBitmap(rotatedIcon, it.mMatrix, mPiePaint);
-            }
+//            Log.d("tag", "PieView onDraw selectedItem: " + getSelectedItem());
 
             // draw circle in Center
             mLinesPaint.setStyle(Paint.Style.FILL);
@@ -835,23 +824,24 @@ public class PieChart extends ViewGroup {
         }
 
         @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
+        public boolean onSingleTapUp(MotionEvent e) {
             float tapX = e.getX();
             float tapY = e.getY();
             // Todo find in which slice was click and call onItemClick
-            Log.d("tag", "onSingleTapUp (" + tapX + ", " + tapY + ")");
-            Log.d("tag", "onSingleTapUp mRotation: " + mPieRotation);
+//            Log.d("tag", "onSingleTapUp (" + tapX + ", " + tapY + ")");
+//            Log.d("tag", "onSingleTapUp mRotation: " + mPieRotation);
             float centerX = mPieBounds.centerX();
             float centerY = mPieBounds.centerY();
-            Log.d("tag", "onSingleTapUp Center(" + centerX+ ", " + centerY+ ")");
+//            Log.d("tag", "onSingleTapUp Center(" + centerX+ ", " + centerY+ ")");
 
             double angle = angleBetweenVectors(centerX, centerY, tapX, tapY, centerX, centerY, centerX + 100, centerY);
 
             if (tapY > centerY)
                 angle = 360 - angle;
-            Log.d("tag", "onSingleTapUp angle: " + angle);
+//            Log.d("tag", "onSingleTapUp angle: " + angle);
             int selectedSlice = findSelectedSlice(mPieRotation, (int) Math.round(angle));
             setSelectedItem(selectedSlice, true);
+            mPieView.invalidate();
             if (mItemClickListener != null)
                 mItemClickListener.OnItemCLick(PieChart.this, selectedSlice);
 

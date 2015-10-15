@@ -15,7 +15,6 @@
         custom:autoCenterPointerInSlice="true"
         custom:highlightStrength="2.5"
         custom:pieStyle="full"
-        custom:pieRotation="1"
         custom:innerRadius="60dp"
         />
     <Button
