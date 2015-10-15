@@ -3,7 +3,7 @@
               android:layout_height="match_parent"
                 android:layout_width="match_parent"
                 android:orientation="vertical">
-    <com.example.oliver.customviews.charting.PieChart
+    <com.example.oliver.customviews.View.PieMenuView
         android:id="@+id/Pie"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

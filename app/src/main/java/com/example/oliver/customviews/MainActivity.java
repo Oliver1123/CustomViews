@@ -1,25 +1,16 @@
 package com.example.oliver.customviews;
 
-import android.app.Activity;
-import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 
-import com.example.oliver.customviews.charting.PieChart;
+import com.example.oliver.customviews.View.PieMenuView;
 
-import java.util.Random;
-
-public class MainActivity extends AppCompatActivity implements PieChart.OnItemCLickListener {
+public class MainActivity extends AppCompatActivity implements PieMenuView.OnItemCLickListener {
     private int[] colors = {Color.BLACK, Color.GRAY, Color.GREEN, Color.CYAN, Color.RED, Color.YELLOW};
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -28,7 +19,7 @@ public class MainActivity extends AppCompatActivity implements PieChart.OnItemCL
         Resources res = getResources();
 
         setContentView(R.layout.activity_main);
-        final PieChart pie = (PieChart) this.findViewById(R.id.Pie);
+        final PieMenuView pie = (PieMenuView) this.findViewById(R.id.Pie);
         pie.setItemClickListener(this);
 //        pie.setLinesColor(Color.RED);
 //
@@ -39,9 +30,9 @@ public class MainActivity extends AppCompatActivity implements PieChart.OnItemCL
         pie.addItem(R.drawable.ic_phone_main);
         pie.addItem(R.mipmap.ic_launcher);
         pie.addItem(R.drawable.ic_map_main);
-//        pie.addItem(R.mipmap.ic_launcher);
-//        pie.addItem(R.drawable.ic_link_main);
-//        pie.addItem(R.mipmap.ic_launcher);
+        pie.addItem(R.mipmap.ic_launcher);
+        pie.addItem(R.drawable.ic_link_main);
+        pie.addItem(R.mipmap.ic_launcher);
 //        pie.addItem(R.drawable.ic_search);
 //        pie.addItem(R.mipmap.ic_launcher);
 //        pie.addItem(R.drawable.ic_search);
@@ -57,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements PieChart.OnItemCL
     }
 
     @Override
-    public void OnItemCLick(PieChart source, int currentItem) {
-        Log.d("tag", "MainActivity PieChart.OnItemClick on item " + currentItem);
+    public void OnItemCLick(PieMenuView source, int currentItem) {
+//        Log.d("tag", "MainActivity PieChart.OnItemClick on item " + currentItem);
     }
 }

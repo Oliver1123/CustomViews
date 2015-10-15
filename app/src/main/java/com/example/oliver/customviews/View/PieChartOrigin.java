@@ -1,4 +1,4 @@
-package com.example.oliver.customviews.charting;
+package com.example.oliver.customviews.View;
 
 /**
  * Created by oliver on 07.10.15.
@@ -111,7 +111,7 @@ public class PieChartOrigin extends ViewGroup {
 
     /**
      * Class constructor taking only a context. Use this constructor to create
-     * {@link PieChart} objects from your own code.
+     * {@link PieMenuView} objects from your own code.
      *
      * @param context
      */
@@ -122,7 +122,7 @@ public class PieChartOrigin extends ViewGroup {
 
     /**
      * Class constructor taking a context and an attribute set. This constructor
-     * is used by the layout engine to construct a {@link PieChart} from a set of
+     * is used by the layout engine to construct a {@link PieMenuView} from a set of
      * XML attributes.
      *
      * @param context
@@ -142,7 +142,7 @@ public class PieChartOrigin extends ViewGroup {
         // the custom attributes that were declared in attrs.xml.
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
-                R.styleable.PieChart,
+                R.styleable.PieMenuView,
                 0, 0
         );
 

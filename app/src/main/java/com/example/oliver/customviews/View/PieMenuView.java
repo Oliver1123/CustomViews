@@ -1,4 +1,4 @@
-package com.example.oliver.customviews.charting;
+package com.example.oliver.customviews.View;
 
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * Custom view that shows a pie chart and, optionally, a label.
  */
-public class PieChart extends ViewGroup {
+public class PieMenuView extends ViewGroup {
     private List<Item> mData = new ArrayList<Item>();
 
 
@@ -79,26 +79,13 @@ public class PieChart extends ViewGroup {
 
     public static final int AUTOCENTER_ANIM_DURATION = 250;
 
-
-    /**
-     * Interface definition for a callback to be invoked when the current
-     * item changes.
-     */
-    public interface OnSelectedItemChangeListener {
-        void OnSelectedItemChange(PieChart source, int currentItem);
-    }
-
-    public interface OnItemCLickListener {
-        void OnItemCLick(PieChart source, int currentItem);
-    }
-
     /**
      * Class constructor taking only a context. Use this constructor to create
-     * {@link PieChart} objects from your own code.
+     * {@link PieMenuView} objects from your own code.
      *
      * @param context
      */
-    public PieChart(Context context) {
+    public PieMenuView(Context context) {
         super(context);
         Log.d("tag", "PieChart constructor context");
         init();
@@ -106,14 +93,14 @@ public class PieChart extends ViewGroup {
 
     /**
      * Class constructor taking a context and an attribute set. This constructor
-     * is used by the layout engine to construct a {@link PieChart} from a set of
+     * is used by the layout engine to construct a {@link PieMenuView} from a set of
      * XML attributes.
      *
      * @param context
      * @param attrs   An attribute set which can contain attributes from
      *                from {@link View}.
      */
-    public PieChart(Context context, AttributeSet attrs) {
+    public PieMenuView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         Log.d("tag", "PieChart constructor context, attrs");
@@ -127,7 +114,7 @@ public class PieChart extends ViewGroup {
         // the custom attributes that were declared in attrs.xml.
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
-                R.styleable.PieChart,
+                R.styleable.PieMenuView,
                 0, 0
         );
             Log.d("tag", a.toString());
@@ -138,17 +125,17 @@ public class PieChart extends ViewGroup {
             // The R.styleable.PieChart_* constants represent the index for
             // each custom attribute in the R.styleable.PieChart array.
 
-            mAutoCenterInSlice  = a.getBoolean(R.styleable.PieChart_autoCenterPointerInSlice, false);
-            mLinesWidth         = a.getDimension(R.styleable.PieChart_linesWidth, 5.0f);
-            mLinesColor         = a.getColor(R.styleable.PieChart_linesColor, Color.BLACK);
-            mSegmentsColor      = a.getColor(R.styleable.PieChart_segmentsColor, Color.YELLOW);
-            mSelectedItemColor  = a.getColor(R.styleable.PieChart_selectedItemColor, Color.RED);
+            mAutoCenterInSlice  = a.getBoolean(R.styleable.PieMenuView_autoCenterPointerInSlice, true);
+            mLinesWidth         = a.getDimension(R.styleable.PieMenuView_linesWidth, 5.0f);
+            mLinesColor         = a.getColor(R.styleable.PieMenuView_linesColor, Color.BLACK);
+            mSegmentsColor      = a.getColor(R.styleable.PieMenuView_segmentsColor, Color.YELLOW);
+            mSelectedItemColor  = a.getColor(R.styleable.PieMenuView_selectedItemColor, Color.RED);
 
-            mPieStyle = a.getInteger(R.styleable.PieChart_pieStyle, 0);
-            mPieRotation = a.getInt(R.styleable.PieChart_pieRotation, 0);
-            mInnerRadius = a.getDimension(R.styleable.PieChart_innerRadius, 60.0f);
-            mIconWidth = a.getDimension(R.styleable.PieChart_iconWidth, 120.0f);
-            mIconHeight = a.getDimension(R.styleable.PieChart_iconHeight, 120.0f);
+            mPieStyle = a.getInteger(R.styleable.PieMenuView_pieStyle, 0);
+            mPieRotation = a.getInt(R.styleable.PieMenuView_pieRotation, 0);
+            mInnerRadius = a.getDimension(R.styleable.PieMenuView_innerRadius, 60.0f);
+            mIconWidth = a.getDimension(R.styleable.PieMenuView_iconWidth, 120.0f);
+            mIconHeight = a.getDimension(R.styleable.PieMenuView_iconHeight, 120.0f);
         } finally {
             // release the TypedArray so that it can be reused.
             a.recycle();
@@ -306,7 +293,7 @@ public class PieChart extends ViewGroup {
             mSelectedItemChangeListener.OnSelectedItemChange(this, selectedItem);
         }
         if (scrollIntoView) {
-//            centerOnCurrentItem();
+            centerOnItem(selectedItem);
         }
         invalidate();
         requestLayout();
@@ -509,7 +496,7 @@ public class PieChart extends ViewGroup {
         // Set up an animator to animate the PieRotation property. This is used to
         // correct the pie's orientation after the user lets go of it.
         if (Build.VERSION.SDK_INT >= 11) {
-            mAutoCenterAnimator = ObjectAnimator.ofInt(PieChart.this, "PieRotation", 0);
+            mAutoCenterAnimator = ObjectAnimator.ofInt(PieMenuView.this, "PieRotation", 0);
 
             // Add a listener to hook the onAnimationEnd event so that we can do
             // some cleanup when the pie stops moving.
@@ -548,7 +535,7 @@ public class PieChart extends ViewGroup {
         }
 
         // Create a gesture detector to handle onTouch messages
-        mDetector = new GestureDetector(PieChart.this.getContext(), new GestureListener());
+        mDetector = new GestureDetector(PieMenuView.this.getContext(), new GestureListener());
 
         // Turn off long press--this control doesn't use it, and if long press is enabled,
         // you can't scroll for a bit, pause, then scroll some more (the pause is interpreted
@@ -615,21 +602,31 @@ public class PieChart extends ViewGroup {
      * Kicks off an animation that will result in the pointer being centered in the
      * pie slice of the currently selected item.
      */
-//    private void centerOnCurrentItem() {
-//        Item current = mData.get(getSelectedItem());
-//        int targetAngle = current.mStartAngle + (current.mEndAngle - current.mStartAngle) / 2;
-//        targetAngle -= mCurrentItemAngle;
-//        if (targetAngle < 90 && mPieRotation > 180) targetAngle += 360;
-//
-//        if (Build.VERSION.SDK_INT >= 11) {
-//            // Fancy animated version
-//            mAutoCenterAnimator.setIntValues(targetAngle);
-//            mAutoCenterAnimator.setDuration(AUTOCENTER_ANIM_DURATION).start();
-//        } else {
-//            // Dull non-animated version
-////            mPieView.rotateTo(targetAngle);
-//        }
-//    }
+    private void centerOnItem(int itemIndex) {
+        int centricAngle = 90;
+        int centricOppositeAngle = (centricAngle + 180) % 360;
+
+        int viewRotation = (360 - mPieRotation) % 360;
+        int sliceCenterAngle= (viewRotation + mData.get(itemIndex).mCenterAngle) % 360;
+        int rotationAngle = sliceCenterAngle - centricAngle;
+        // find the shortest way to centric angle
+        if (sliceCenterAngle > centricOppositeAngle) {
+            rotationAngle -= 360;
+        }
+        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricAngle: " + centricAngle);
+        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricOppositeAngle: " + centricOppositeAngle);
+        Log.d("tag", "CenterOnItem " + itemIndex+ ", sliceCenterAngle: " + sliceCenterAngle);
+        Log.d("tag", "CenterOnItem " + itemIndex+ ", rotationAngle: " + rotationAngle);
+        if (Build.VERSION.SDK_INT >= 11) {
+//             Fancy animated version
+            mAutoCenterAnimator.setIntValues(mPieRotation + rotationAngle);
+            mAutoCenterAnimator.setDuration(AUTOCENTER_ANIM_DURATION).start();
+        } else {
+            // Dull non-animated version
+//            mPieView.rotateTo(targetAngle);
+        }
+    }
+
 
     /**
      * Internal child class that draws the pie chart onto a separate hardware layer
@@ -682,23 +679,23 @@ public class PieChart extends ViewGroup {
 
                 Item it = mData.get(i);
                 canvas.drawArc(mPieBounds,
-                        180 + it.mStartAngle,
+                        360 - it.mEndAngle,
                         it.mEndAngle - it.mStartAngle,
                         true, mPiePaint);
 
                 // draw icon
                 it.mMatrix.reset();
-                it.mMatrix.setRotate(it.mCenterAngle, mPieBounds.centerX(), mPieBounds.centerY());
-                it.mMatrix.preTranslate((mPieBounds.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
+                it.mMatrix.setRotate(-it.mCenterAngle, mPieBounds.centerX(), mPieBounds.centerY());
+                it.mMatrix.preTranslate(mPieBounds.centerX()+ mInnerRadius + (mPieBounds.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
                         mPieBounds.centerY() - it.mIcon.getHeight() / 2);
 
-                Bitmap rotatedIcon  = rotateBitmap(it.mIcon, -90);
+                Bitmap rotatedIcon  = rotateBitmap(it.mIcon, 90);
                 canvas.drawBitmap(rotatedIcon, it.mMatrix, mPiePaint);
 
 
                 // draw lines around slice
                 canvas.drawArc(mPieBounds,
-                        180 + it.mStartAngle,
+                        360 - it.mEndAngle,
                         it.mEndAngle - it.mStartAngle,
                         true, mLinesPaint);
             }
@@ -827,7 +824,6 @@ public class PieChart extends ViewGroup {
         public boolean onSingleTapUp(MotionEvent e) {
             float tapX = e.getX();
             float tapY = e.getY();
-            // Todo find in which slice was click and call onItemClick
 //            Log.d("tag", "onSingleTapUp (" + tapX + ", " + tapY + ")");
 //            Log.d("tag", "onSingleTapUp mRotation: " + mPieRotation);
             float centerX = mPieBounds.centerX();
@@ -839,26 +835,42 @@ public class PieChart extends ViewGroup {
             if (tapY > centerY)
                 angle = 360 - angle;
 //            Log.d("tag", "onSingleTapUp angle: " + angle);
-            int selectedSlice = findSelectedSlice(mPieRotation, (int) Math.round(angle));
+            int selectedSlice = findSliceByAngle(mPieRotation, (int) Math.round(angle));
             setSelectedItem(selectedSlice, true);
             mPieView.invalidate();
+
             if (mItemClickListener != null)
-                mItemClickListener.OnItemCLick(PieChart.this, selectedSlice);
+                mItemClickListener.OnItemCLick(PieMenuView.this, selectedSlice);
 
             return true;
         }
-
-
-
     }
 
-    private int findSelectedSlice(int pieRotation, int angle) {
-        int sliceAngle = (360 + 180 - (pieRotation + angle) % 360) % 360;
-        Log.d("tag", "findSelectedSlice sliceAngle: " + sliceAngle);
+    /**
+     * Interface definition for a callback to be invoked when the current
+     * item changes.
+     */
+    public interface OnSelectedItemChangeListener {
+        void OnSelectedItemChange(PieMenuView source, int currentItem);
+    }
+
+    /**
+     * Interface definition for a callback to be invoked when the current
+     * item changes.
+     */
+    public interface OnItemCLickListener {
+        void OnItemCLick(PieMenuView source, int item);
+    }
+
+
+    //          HELPERS METHODS
+    private int findSliceByAngle(int pieRotation, int angle) {
+        int sliceAngle = (pieRotation + angle) % 360;
+//        Log.d("tag", "findSelectedSlice sliceAngle: " + sliceAngle);
         for (int i = 0; i < mData.size(); i++) {
             Item it = mData.get(i);
-            Log.d("tag", "it[" + i+ "] startAngle: " + it.mStartAngle + ", endAngle: " + it.mEndAngle);
-            if (it.mStartAngle < sliceAngle && sliceAngle <= it.mEndAngle) {
+//            Log.d("tag", "it[" + i+ "] startAngle: " + it.mStartAngle + ", endAngle: " + it.mEndAngle);
+            if (it.mStartAngle <= sliceAngle && sliceAngle <= it.mEndAngle) {
                 return i;
             }
         }

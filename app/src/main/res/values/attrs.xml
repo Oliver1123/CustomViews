@@ -1,5 +1,5 @@
 <resources>
-    <declare-styleable name="PieChart">
+    <declare-styleable name="PieMenuView">
         <attr name="autoCenterPointerInSlice" format="boolean"/>
         <attr name="highlightStrength" format="float"/>
         <attr name="linesWidth" format="dimension"/>
