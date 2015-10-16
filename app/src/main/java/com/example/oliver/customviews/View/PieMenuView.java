@@ -71,12 +71,16 @@ public class PieMenuView extends ViewGroup {
     private float mIconWidth;
     private float mIconHeight;
 
+    private float mShadowRadius = 5.0f;
+    private float mShadowX = 0f;
+    private float mShadowY = 0f;
+    private float mElevation = 10f;
     //////////////////////////
+
     /**
      * The initial fling velocity is divided by this amount.
      */
     public static final int FLING_VELOCITY_DOWNSCALE = 4;
-
     public static final int AUTOCENTER_ANIM_DURATION = 250;
 
     /**
@@ -476,9 +480,11 @@ public class PieMenuView extends ViewGroup {
         mPiePaint.setStyle(Paint.Style.FILL_AND_STROKE);
         mPiePaint.setStrokeWidth(mLinesWidth);
         mPiePaint.setColor(mSegmentsColor);
+        mPiePaint.setShadowLayer(mShadowRadius, mShadowX, mShadowY, Color.BLACK);
 
         // Set up the paint for the lines
         mLinesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mLinesPaint.setShadowLayer(mShadowRadius, mShadowX, mShadowY, Color.BLACK);
         mLinesPaint.setStyle(Paint.Style.STROKE);
         mLinesPaint.setColor(mLinesColor);
         mLinesPaint.setStrokeWidth(mLinesWidth);
@@ -649,6 +655,7 @@ public class PieMenuView extends ViewGroup {
          * Enable hardware acceleration (consumes memory)
          */
         public void accelerate() {
+
             setLayerToHW(this);
         }
 
@@ -656,7 +663,7 @@ public class PieMenuView extends ViewGroup {
          * Disable hardware acceleration (releases memory)
          */
         public void decelerate() {
-            setLayerToSW(this);
+//            setLayerToSW(this);
         }
 
         @Override
@@ -719,8 +726,8 @@ public class PieMenuView extends ViewGroup {
 
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            int linesWidth = (int) mLinesWidth;
-            mPieBounds = new RectF(linesWidth, linesWidth, w - linesWidth, h - linesWidth);
+            int linesWidth = (int) (mLinesWidth + mShadowRadius);
+            mPieBounds = new RectF(linesWidth, linesWidth, w - linesWidth - mShadowX, h - linesWidth - mShadowY);
             int centerX = w / 2;
             int centerY = h / 2;
             mCenterBounds = new RectF(centerX - mInnerRadius, centerY - mInnerRadius,
