@@ -55,7 +55,6 @@ public class PieMenuView extends ViewGroup {
 
     // the index of the current item.
     private int mSelectedItem = -1;
-    private boolean mAutoCenterInSlice;
     private ObjectAnimator mAutoCenterAnimator;
 
     //////////////////////////
@@ -70,11 +69,11 @@ public class PieMenuView extends ViewGroup {
     private float mInnerRadius;
     private float mIconWidth;
     private float mIconHeight;
+    private int mCentricAngle;
 
     private float mShadowRadius = 5.0f;
     private float mShadowX = 0f;
     private float mShadowY = 0f;
-    private float mElevation = 10f;
     //////////////////////////
 
     /**
@@ -129,7 +128,6 @@ public class PieMenuView extends ViewGroup {
             // The R.styleable.PieChart_* constants represent the index for
             // each custom attribute in the R.styleable.PieChart array.
 
-            mAutoCenterInSlice  = a.getBoolean(R.styleable.PieMenuView_autoCenterPointerInSlice, true);
             mLinesWidth         = a.getDimension(R.styleable.PieMenuView_linesWidth, 5.0f);
             mLinesColor         = a.getColor(R.styleable.PieMenuView_linesColor, Color.BLACK);
             mSegmentsColor      = a.getColor(R.styleable.PieMenuView_segmentsColor, Color.YELLOW);
@@ -140,6 +138,8 @@ public class PieMenuView extends ViewGroup {
             mInnerRadius = a.getDimension(R.styleable.PieMenuView_innerRadius, 60.0f);
             mIconWidth = a.getDimension(R.styleable.PieMenuView_iconWidth, 120.0f);
             mIconHeight = a.getDimension(R.styleable.PieMenuView_iconHeight, 120.0f);
+
+            mCentricAngle = 90;
         } finally {
             // release the TypedArray so that it can be reused.
             a.recycle();
@@ -258,8 +258,6 @@ public class PieMenuView extends ViewGroup {
         rotation = (rotation % 360 + 360) % 360;
         mPieRotation = rotation;
         mPieView.rotateTo(rotation);
-
-//        calcSelectedItem();
     }
 
     /**
@@ -291,7 +289,7 @@ public class PieMenuView extends ViewGroup {
      *                       will not change.
      */
     private void setSelectedItem(int selectedItem, boolean scrollIntoView) {
-        Log.d("tag", "setSelectedItem: " + selectedItem);
+//        Log.d("tag", "setSelectedItem: " + selectedItem);
         mSelectedItem = selectedItem;
         if (mSelectedItemChangeListener != null) {
             mSelectedItemChangeListener.OnSelectedItemChange(this, selectedItem);
@@ -463,7 +461,6 @@ public class PieMenuView extends ViewGroup {
         // if there are free space in chart
         mData.get(mData.size() - 1).mEndAngle = 360;
 //        calcSelectedItem();
-        onScrollFinished();
     }
 
     /**
@@ -473,14 +470,14 @@ public class PieMenuView extends ViewGroup {
     private void init() {
         // Force the background to software rendering because otherwise the Blur
         // filter won't work.
-        setLayerToSW(this);
+//        setLayerToSW(this);
 
         // Set up the paint for the pie slices
         mPiePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPiePaint.setStyle(Paint.Style.FILL_AND_STROKE);
         mPiePaint.setStrokeWidth(mLinesWidth);
         mPiePaint.setColor(mSegmentsColor);
-        mPiePaint.setShadowLayer(mShadowRadius, mShadowX, mShadowY, Color.BLACK);
+//        mPiePaint.setShadowLayer(mShadowRadius, mShadowX, mShadowY, Color.BLACK);
 
         // Set up the paint for the lines
         mLinesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -488,9 +485,6 @@ public class PieMenuView extends ViewGroup {
         mLinesPaint.setStyle(Paint.Style.STROKE);
         mLinesPaint.setColor(mLinesColor);
         mLinesPaint.setStrokeWidth(mLinesWidth);
-
-        // Set up the paint for the shadow
-        // todo paint for shadow
 
         // Add a child view to draw the pie. Putting this in a child view
         // makes it possible to draw it on a separate hardware layer that rotates
@@ -565,7 +559,6 @@ public class PieMenuView extends ViewGroup {
             if (Build.VERSION.SDK_INT >= 11) {
                 mScrollAnimator.cancel();
             }
-            onScrollFinished();
         }
     }
 
@@ -589,19 +582,6 @@ public class PieMenuView extends ViewGroup {
         if (Build.VERSION.SDK_INT >= 11) {
             mAutoCenterAnimator.cancel();
         }
-
-        onScrollFinished();
-    }
-
-    /**
-     * Called when the user finishes a scroll action.
-     */
-    private void onScrollFinished() {
-        if (mAutoCenterInSlice) {
-//            centerOnCurrentItem();
-        } else {
-            mPieView.decelerate();
-        }
     }
 
     /**
@@ -609,20 +589,19 @@ public class PieMenuView extends ViewGroup {
      * pie slice of the currently selected item.
      */
     private void centerOnItem(int itemIndex) {
-        int centricAngle = 90;
-        int centricOppositeAngle = (centricAngle + 180) % 360;
+        int centricOppositeAngle = (mCentricAngle + 180) % 360;
 
         int viewRotation = (360 - mPieRotation) % 360;
         int sliceCenterAngle= (viewRotation + mData.get(itemIndex).mCenterAngle) % 360;
-        int rotationAngle = sliceCenterAngle - centricAngle;
+        int rotationAngle = sliceCenterAngle - mCentricAngle;
         // find the shortest way to centric angle
         if (sliceCenterAngle > centricOppositeAngle) {
             rotationAngle -= 360;
         }
-        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricAngle: " + centricAngle);
-        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricOppositeAngle: " + centricOppositeAngle);
-        Log.d("tag", "CenterOnItem " + itemIndex+ ", sliceCenterAngle: " + sliceCenterAngle);
-        Log.d("tag", "CenterOnItem " + itemIndex+ ", rotationAngle: " + rotationAngle);
+//        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricAngle: " + mCentricAngle);
+//        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricOppositeAngle: " + centricOppositeAngle);
+//        Log.d("tag", "CenterOnItem " + itemIndex+ ", sliceCenterAngle: " + sliceCenterAngle);
+//        Log.d("tag", "CenterOnItem " + itemIndex + ", rotationAngle: " + rotationAngle);
         if (Build.VERSION.SDK_INT >= 11) {
 //             Fancy animated version
             mAutoCenterAnimator.setIntValues(mPieRotation + rotationAngle);
@@ -641,6 +620,7 @@ public class PieMenuView extends ViewGroup {
     private class PieView extends View {
         // Used for SDK < 11
         private PointF mPivot = new PointF();
+        private RectF mPieBounds, mBigCenterBounds, mSmallCenterBounds;
 
         /**
          * Construct a PieView
@@ -655,7 +635,6 @@ public class PieMenuView extends ViewGroup {
          * Enable hardware acceleration (consumes memory)
          */
         public void accelerate() {
-
             setLayerToHW(this);
         }
 
@@ -675,53 +654,31 @@ public class PieMenuView extends ViewGroup {
             mLinesPaint.setStyle(Paint.Style.STROKE);
             mLinesPaint.setColor(mLinesColor);
             mLinesPaint.setStrokeWidth(mLinesWidth);
-            int selectedItem = getSelectedItem();
             for (int i = 0; i < mData.size(); i++) {
                 // draw slice
-                if (i == selectedItem) {
-                    mPiePaint.setColor(mSelectedItemColor);
-                } else {
-                    mPiePaint.setColor(mSegmentsColor);
-                }
-
-                Item it = mData.get(i);
-                canvas.drawArc(mPieBounds,
-                        360 - it.mEndAngle,
-                        it.mEndAngle - it.mStartAngle,
-                        true, mPiePaint);
-
-                // draw icon
-                it.mMatrix.reset();
-                it.mMatrix.setRotate(-it.mCenterAngle, mPieBounds.centerX(), mPieBounds.centerY());
-                it.mMatrix.preTranslate(mPieBounds.centerX()+ mInnerRadius + (mPieBounds.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
-                        mPieBounds.centerY() - it.mIcon.getHeight() / 2);
-
-                Bitmap rotatedIcon  = rotateBitmap(it.mIcon, 90);
-                canvas.drawBitmap(rotatedIcon, it.mMatrix, mPiePaint);
-
-
-                // draw lines around slice
-                canvas.drawArc(mPieBounds,
-                        360 - it.mEndAngle,
-                        it.mEndAngle - it.mStartAngle,
-                        true, mLinesPaint);
+                drawItem(canvas, mData.get(i), mPieBounds, mPiePaint, mLinesPaint);
             }
 //            Log.d("tag", "PieView onDraw selectedItem: " + getSelectedItem());
 
-            // draw circle in Center
-            mLinesPaint.setStyle(Paint.Style.FILL);
-            canvas.drawArc(mCenterBounds, 0, 360, false, mLinesPaint);
-
-
-            mLinesPaint.setStyle(Paint.Style.STROKE);
-            mLinesPaint.setColor(mSelectedItemColor);
-            mLinesPaint.setStrokeWidth(4 * mLinesWidth);
-            canvas.drawArc(mCenterBounds, 0, 360, false, mLinesPaint);
+            // draw Selected Item
+            if (getSelectedItem() != -1) {
+                mPiePaint.setColor(mSelectedItemColor);
+                drawItem(canvas, mData.get(getSelectedItem()), mPieBounds, mPiePaint, null);
+            }
 
 //             draw outer border
-            mLinesPaint.setColor(mLinesColor);
+//            mLinesPaint.setColor(mLinesColor);
             mLinesPaint.setStrokeWidth(2 * mLinesWidth);
             canvas.drawArc(mPieBounds, 0, 360, false, mLinesPaint);
+
+            // draw circle in Center
+            mLinesPaint.setStyle(Paint.Style.FILL);
+            mLinesPaint.setColor(mSelectedItemColor);
+            canvas.drawArc(mBigCenterBounds, 0, 360, false, mLinesPaint);
+
+
+            mLinesPaint.setColor(mLinesColor);
+            canvas.drawArc(mSmallCenterBounds, 0, 360, false, mLinesPaint);
         }
 
         @Override
@@ -730,13 +687,38 @@ public class PieMenuView extends ViewGroup {
             mPieBounds = new RectF(linesWidth, linesWidth, w - linesWidth - mShadowX, h - linesWidth - mShadowY);
             int centerX = w / 2;
             int centerY = h / 2;
-            mCenterBounds = new RectF(centerX - mInnerRadius, centerY - mInnerRadius,
+            mBigCenterBounds = new RectF(centerX - mInnerRadius, centerY - mInnerRadius,
                                         centerX + mInnerRadius, centerY + mInnerRadius);
+            float smallRadius = (float) (mInnerRadius * 0.6);
+            mSmallCenterBounds = new RectF(centerX - smallRadius, centerY - smallRadius,
+                                        centerX + smallRadius, centerY + smallRadius);
 
         }
 
-        RectF mPieBounds, mCenterBounds;
+        public void drawItem(Canvas canvas, Item it,RectF drawingArea, Paint segmentPaint, Paint linesPaint) {
 
+            canvas.drawArc(drawingArea,
+                    360 - it.mEndAngle,
+                    it.mEndAngle - it.mStartAngle,
+                    true, segmentPaint);
+
+            // draw icon
+            it.mMatrix.reset();
+            it.mMatrix.setRotate(-it.mCenterAngle, drawingArea.centerX(), drawingArea.centerY());
+            it.mMatrix.preTranslate(drawingArea.centerX() + mInnerRadius + (drawingArea.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
+                    drawingArea.centerY() - it.mIcon.getHeight() / 2);
+
+            Bitmap rotatedIcon  = rotateBitmap(it.mIcon, 90);
+            canvas.drawBitmap(rotatedIcon, it.mMatrix, segmentPaint);
+
+            // draw lines around slice
+            if(linesPaint != null) {
+                canvas.drawArc(drawingArea,
+                        360 - it.mEndAngle,
+                        it.mEndAngle - it.mStartAngle,
+                        true, linesPaint);
+            }
+        }
 
         public void rotateTo(float pieRotation) {
             if (Build.VERSION.SDK_INT >= 11) {
