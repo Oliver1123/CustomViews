@@ -1,26 +1,42 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:custom="http://schemas.android.com/apk/com.example.oliver.customviews"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_height="match_parent"
-                android:layout_width="match_parent"
-                android:orientation="vertical">
+              android:layout_width="match_parent"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:orientation="vertical">
     <com.example.oliver.customviews.View.PieMenuView
-        android:id="@+id/Pie"
+        android:id="@+id/Pie1"
         android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        android:background="@android:color/transparent"
+
+        app:iconHeight="50dp"
+        app:iconWidth="50dp"
+        app:innerRadius="0dp"
+        app:selectedItemColor="@android:color/holo_orange_dark"
+        app:segmentsColor="@color/seafoam"
+        app:linesColor="@android:color/black"
+        app:shadowRadius="5dp"
+        app:centricAngle="270"
+        app:linesWidth="3dp"
+
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"/>
+
+    <com.example.oliver.customviews.View.PieMenuView
+        android:id="@+id/Pie2"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:padding="10dp"
-        android:background="@android:color/white"
+        android:background="@android:color/transparent"
 
-        custom:segmentsColor="@android:color/holo_red_dark"
-        custom:linesColor="@android:color/holo_blue_dark"
-        custom:autoCenterPointerInSlice="true"
-        custom:highlightStrength="2.5"
-        custom:pieStyle="full"
-        custom:innerRadius="60dp"
-        />
-    <Button
-        android:id="@+id/Reset"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/reset_button"
-        />
-</LinearLayout>
+        app:iconHeight="40dp"
+        app:iconWidth="40dp"
+        app:innerRadius="20dp"
+        app:segmentsColor="@color/yellow"
+        app:linesWidth="2dp"
+        android:layout_marginBottom="-150dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
+
+</RelativeLayout>

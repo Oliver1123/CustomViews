@@ -1,9 +1,9 @@
 package com.example.oliver.customviews.View;
 
-import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -15,6 +15,7 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -28,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Custom view that shows a pie chart and, optionally, a label.
+ * Custom view that shows a pie chart
  */
 public class PieMenuView extends ViewGroup {
     private List<Item> mData = new ArrayList<Item>();
@@ -48,32 +49,21 @@ public class PieMenuView extends ViewGroup {
     private Scroller mScroller;
     private ValueAnimator mScrollAnimator;
     private GestureDetector mDetector;
-//    private PointerView mPointerView;
-
-    // The angle at which we measure the current item.
-//    private int mCurrentItemAngle;
 
     // the index of the current item.
     private int mSelectedItem = -1;
     private ObjectAnimator mAutoCenterAnimator;
 
     //////////////////////////
-    public static int PIE_STYLE_FULL    = 0;
-    public static int PIE_STYLE_HALF    = 1;
-    public static int PIE_STYLE_QUARTER = 2;
     private int mLinesColor;
     private int mSegmentsColor;
     private int mSelectedItemColor;
     private float mLinesWidth;
-    private int mPieStyle;
     private float mInnerRadius;
     private float mIconWidth;
     private float mIconHeight;
     private int mCentricAngle;
-
-    private float mShadowRadius = 5.0f;
-    private float mShadowX = 0f;
-    private float mShadowY = 0f;
+    private float mShadowRadius;
     //////////////////////////
 
     /**
@@ -90,7 +80,6 @@ public class PieMenuView extends ViewGroup {
      */
     public PieMenuView(Context context) {
         super(context);
-        Log.d("tag", "PieChart constructor context");
         init();
     }
 
@@ -106,40 +95,27 @@ public class PieMenuView extends ViewGroup {
     public PieMenuView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        Log.d("tag", "PieChart constructor context, attrs");
-        // attrs contains the raw values for the XML attributes
-        // that were specified in the layout, which don't include
-        // attributes set by styles or themes, and which may have
-        // unresolved references. Call obtainStyledAttributes()
-        // to get the final values for each attribute.
-        //
-        // This call uses R.styleable.PieChart, which is an array of
-        // the custom attributes that were declared in attrs.xml.
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
                 R.styleable.PieMenuView,
                 0, 0
         );
-            Log.d("tag", a.toString());
         try {
             // Retrieve the values from the TypedArray and store into
             // fields of this class.
-            //
-            // The R.styleable.PieChart_* constants represent the index for
-            // each custom attribute in the R.styleable.PieChart array.
 
-            mLinesWidth         = a.getDimension(R.styleable.PieMenuView_linesWidth, 5.0f);
+            mLinesWidth         = a.getDimension(R.styleable.PieMenuView_linesWidth, convertDpToPixel(2));
             mLinesColor         = a.getColor(R.styleable.PieMenuView_linesColor, Color.BLACK);
-            mSegmentsColor      = a.getColor(R.styleable.PieMenuView_segmentsColor, Color.YELLOW);
+            mSegmentsColor      = a.getColor(R.styleable.PieMenuView_segmentsColor, Color.WHITE);
             mSelectedItemColor  = a.getColor(R.styleable.PieMenuView_selectedItemColor, Color.RED);
 
-            mPieStyle = a.getInteger(R.styleable.PieMenuView_pieStyle, 0);
             mPieRotation = a.getInt(R.styleable.PieMenuView_pieRotation, 0);
-            mInnerRadius = a.getDimension(R.styleable.PieMenuView_innerRadius, 60.0f);
-            mIconWidth = a.getDimension(R.styleable.PieMenuView_iconWidth, 120.0f);
-            mIconHeight = a.getDimension(R.styleable.PieMenuView_iconHeight, 120.0f);
+            mInnerRadius = a.getDimension(R.styleable.PieMenuView_innerRadius, convertDpToPixel(20));
+            mIconWidth = a.getDimension(R.styleable.PieMenuView_iconWidth, convertDpToPixel(20));
+            mIconHeight = a.getDimension(R.styleable.PieMenuView_iconHeight, convertDpToPixel(20));
 
-            mCentricAngle = 90;
+            mCentricAngle = a.getInt(R.styleable.PieMenuView_centricAngle, 90);
+            mShadowRadius = a.getDimension(R.styleable.PieMenuView_shadowRadius, convertDpToPixel(2));
         } finally {
             // release the TypedArray so that it can be reused.
             a.recycle();
@@ -187,20 +163,6 @@ public class PieMenuView extends ViewGroup {
         requestLayout();
     }
 
-    public int getPieStyle() {
-        return mPieStyle;
-    }
-
-    public void setPieStyle(int pieStyle) {
-        if (pieStyle != PIE_STYLE_FULL && pieStyle != PIE_STYLE_HALF && pieStyle != PIE_STYLE_QUARTER) {
-            throw new IllegalArgumentException(
-                    "PieStyle must be one of PIE_STYLE_FULL, PIE_STYLE_HALF or PIE_STYLE_QUARTER");
-        }
-        mPieStyle = pieStyle;
-        invalidate();
-        requestLayout();
-
-    }
 
     public float getInnerRadius() {
         return mInnerRadius;
@@ -239,6 +201,25 @@ public class PieMenuView extends ViewGroup {
         requestLayout();
     }
 
+    public float getShadowRadius() {
+        return mShadowRadius;
+    }
+    public void setShadowRadius(float shadowRadius) {
+        mShadowRadius = shadowRadius;
+        invalidate();
+        requestLayout();
+    }
+
+    public float getCentricAngle() {
+        return mCentricAngle;
+    }
+    public void setCentricAngle(int centricAngle) {
+        if (centricAngle < 0 || centricAngle >= 360)
+            throw new IllegalArgumentException("The angle must be specified in degrees between 0 and 360.");
+        mCentricAngle = centricAngle;
+        invalidate();
+        requestLayout();
+    }
     /**
      * Returns the current rotation of the pie graphic.
      *
@@ -289,7 +270,6 @@ public class PieMenuView extends ViewGroup {
      *                       will not change.
      */
     private void setSelectedItem(int selectedItem, boolean scrollIntoView) {
-//        Log.d("tag", "setSelectedItem: " + selectedItem);
         mSelectedItem = selectedItem;
         if (mSelectedItemChangeListener != null) {
             mSelectedItemChangeListener.OnSelectedItemChange(this, selectedItem);
@@ -378,19 +358,17 @@ public class PieMenuView extends ViewGroup {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-//        Log.d("tag", "PieChart onDraw");
-
     }
 
 
     @Override
     protected int getSuggestedMinimumWidth() {
-        return (int) (mInnerRadius + getIconWidth() + mLinesWidth) * 2;
+        return (int) (mInnerRadius + 10 + getIconWidth() + 10 + mLinesWidth) * 2;
     }
 
     @Override
     protected int getSuggestedMinimumHeight() {
-        return (int) (mInnerRadius + getIconHeight() + mLinesWidth) * 2;
+        return (int) (mInnerRadius + 10 + getIconHeight() + 10 + mLinesWidth) * 2;
     }
 
     @Override
@@ -405,13 +383,14 @@ public class PieMenuView extends ViewGroup {
         int minh = getPaddingBottom() + getPaddingTop() + getSuggestedMinimumHeight();
         int h = Math.max(minh, MeasureSpec.getSize(heightMeasureSpec));
 
-        setMeasuredDimension(w, h);
+        // The view must be square
+        int size = Math.min(w, h);
+        setMeasuredDimension(size, size);
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-
         // Account for padding
         float xpad = (float) (getPaddingLeft() + getPaddingRight());
         float ypad = (float) (getPaddingTop() + getPaddingBottom());
@@ -454,11 +433,10 @@ public class PieMenuView extends ViewGroup {
             it.mStartAngle = currentAngle;
             it.mEndAngle = it.mStartAngle + itemAngle;
             currentAngle = it.mEndAngle;
-//            Log.d("tag", "it[" + i + "] sA:" + it.mStartAngle + ", eA: " + it.mEndAngle);
             // where put the icon
             it.mCenterAngle = it.mStartAngle  + (it.mEndAngle - it.mStartAngle) / 2;
         }
-        // if there are free space in chart
+        // if free space left in chart
         mData.get(mData.size() - 1).mEndAngle = 360;
 //        calcSelectedItem();
     }
@@ -468,20 +446,16 @@ public class PieMenuView extends ViewGroup {
      * called from both constructors.
      */
     private void init() {
-        // Force the background to software rendering because otherwise the Blur
-        // filter won't work.
-//        setLayerToSW(this);
 
         // Set up the paint for the pie slices
         mPiePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPiePaint.setStyle(Paint.Style.FILL_AND_STROKE);
         mPiePaint.setStrokeWidth(mLinesWidth);
         mPiePaint.setColor(mSegmentsColor);
-//        mPiePaint.setShadowLayer(mShadowRadius, mShadowX, mShadowY, Color.BLACK);
 
         // Set up the paint for the lines
         mLinesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mLinesPaint.setShadowLayer(mShadowRadius, mShadowX, mShadowY, Color.BLACK);
+        mLinesPaint.setShadowLayer(mShadowRadius, 0, 0, Color.BLACK);
         mLinesPaint.setStyle(Paint.Style.STROKE);
         mLinesPaint.setColor(mLinesColor);
         mLinesPaint.setStrokeWidth(mLinesWidth);
@@ -497,29 +471,11 @@ public class PieMenuView extends ViewGroup {
         // correct the pie's orientation after the user lets go of it.
         if (Build.VERSION.SDK_INT >= 11) {
             mAutoCenterAnimator = ObjectAnimator.ofInt(PieMenuView.this, "PieRotation", 0);
-
-            // Add a listener to hook the onAnimationEnd event so that we can do
-            // some cleanup when the pie stops moving.
-            mAutoCenterAnimator.addListener(new Animator.AnimatorListener() {
-                public void onAnimationStart(Animator animator) {
-                }
-
-                public void onAnimationEnd(Animator animator) {
-                    mPieView.decelerate();
-                }
-
-                public void onAnimationCancel(Animator animator) {
-                }
-
-                public void onAnimationRepeat(Animator animator) {
-                }
-            });
         }
 
 
         // Create a Scroller to handle the fling gesture.
-
-            mScroller = new Scroller(getContext(), null, true);
+        mScroller = new Scroller(getContext(), null, true);
 
         // The scroller doesn't have any built-in animation functions--it just supplies
         // values when we ask it to. So we have to have a way to call it every frame
@@ -542,7 +498,6 @@ public class PieMenuView extends ViewGroup {
         // as a long press, apparently)
         mDetector.setIsLongpressEnabled(false);
 
-
         // In edit mode it's nice to have some demo data, so add that here.
         if (this.isInEditMode()) {
             addItem(R.mipmap.ic_launcher);
@@ -559,18 +514,6 @@ public class PieMenuView extends ViewGroup {
             if (Build.VERSION.SDK_INT >= 11) {
                 mScrollAnimator.cancel();
             }
-        }
-    }
-
-    private void setLayerToSW(View v) {
-        if (!v.isInEditMode() && Build.VERSION.SDK_INT >= 11) {
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-        }
-    }
-
-    private void setLayerToHW(View v) {
-        if (!v.isInEditMode() && Build.VERSION.SDK_INT >= 11) {
-            setLayerType(View.LAYER_TYPE_HARDWARE, null);
         }
     }
 
@@ -595,21 +538,24 @@ public class PieMenuView extends ViewGroup {
         int sliceCenterAngle= (viewRotation + mData.get(itemIndex).mCenterAngle) % 360;
         int rotationAngle = sliceCenterAngle - mCentricAngle;
         // find the shortest way to centric angle
-        if (sliceCenterAngle > centricOppositeAngle) {
-            rotationAngle -= 360;
-        }
-//        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricAngle: " + mCentricAngle);
-//        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricOppositeAngle: " + centricOppositeAngle);
-//        Log.d("tag", "CenterOnItem " + itemIndex+ ", sliceCenterAngle: " + sliceCenterAngle);
-//        Log.d("tag", "CenterOnItem " + itemIndex + ", rotationAngle: " + rotationAngle);
+//        if (sliceCenterAngle > centricOppositeAngle) {
+//            rotationAngle -= 360;
+//        }
+        if (rotationAngle > 180) rotationAngle -= 360;
+        if (rotationAngle < -180) rotationAngle += 360;
+        Log.d("tag", "CenterOnItem " + itemIndex + ", centricAngle: " + mCentricAngle);
+        Log.d("tag", "CenterOnItem " + itemIndex+ ", centricOppositeAngle: " + centricOppositeAngle);
+        Log.d("tag", "CenterOnItem " + itemIndex+ ", sliceCenterAngle: " + sliceCenterAngle);
+        Log.d("tag", "CenterOnItem " + itemIndex + ", rotationAngle: " + rotationAngle);
         if (Build.VERSION.SDK_INT >= 11) {
 //             Fancy animated version
             mAutoCenterAnimator.setIntValues(mPieRotation + rotationAngle);
             mAutoCenterAnimator.setDuration(AUTOCENTER_ANIM_DURATION).start();
         } else {
             // Dull non-animated version
-//            mPieView.rotateTo(targetAngle);
+            mPieView.rotateTo(mPieRotation + rotationAngle);
         }
+        mPieView.invalidate();
     }
 
 
@@ -631,24 +577,9 @@ public class PieMenuView extends ViewGroup {
             super(context);
         }
 
-        /**
-         * Enable hardware acceleration (consumes memory)
-         */
-        public void accelerate() {
-            setLayerToHW(this);
-        }
-
-        /**
-         * Disable hardware acceleration (releases memory)
-         */
-        public void decelerate() {
-//            setLayerToSW(this);
-        }
-
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-//            Log.d("tag", "PieView onDraw");
             mPiePaint.setColor(mSegmentsColor);
 
             mLinesPaint.setStyle(Paint.Style.STROKE);
@@ -658,7 +589,6 @@ public class PieMenuView extends ViewGroup {
                 // draw slice
                 drawItem(canvas, mData.get(i), mPieBounds, mPiePaint, mLinesPaint);
             }
-//            Log.d("tag", "PieView onDraw selectedItem: " + getSelectedItem());
 
             // draw Selected Item
             if (getSelectedItem() != -1) {
@@ -667,7 +597,6 @@ public class PieMenuView extends ViewGroup {
             }
 
 //             draw outer border
-//            mLinesPaint.setColor(mLinesColor);
             mLinesPaint.setStrokeWidth(2 * mLinesWidth);
             canvas.drawArc(mPieBounds, 0, 360, false, mLinesPaint);
 
@@ -684,9 +613,10 @@ public class PieMenuView extends ViewGroup {
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
             int linesWidth = (int) (mLinesWidth + mShadowRadius);
-            mPieBounds = new RectF(linesWidth, linesWidth, w - linesWidth - mShadowX, h - linesWidth - mShadowY);
+            mPieBounds = new RectF(linesWidth, linesWidth, w - linesWidth, h - linesWidth);
             int centerX = w / 2;
             int centerY = h / 2;
+
             mBigCenterBounds = new RectF(centerX - mInnerRadius, centerY - mInnerRadius,
                                         centerX + mInnerRadius, centerY + mInnerRadius);
             float smallRadius = (float) (mInnerRadius * 0.6);
@@ -695,7 +625,7 @@ public class PieMenuView extends ViewGroup {
 
         }
 
-        public void drawItem(Canvas canvas, Item it,RectF drawingArea, Paint segmentPaint, Paint linesPaint) {
+        public void drawItem(Canvas canvas, Item it, RectF drawingArea, Paint segmentPaint, Paint linesPaint) {
 
             canvas.drawArc(drawingArea,
                     360 - it.mEndAngle,
@@ -705,7 +635,8 @@ public class PieMenuView extends ViewGroup {
             // draw icon
             it.mMatrix.reset();
             it.mMatrix.setRotate(-it.mCenterAngle, drawingArea.centerX(), drawingArea.centerY());
-            it.mMatrix.preTranslate(drawingArea.centerX() + mInnerRadius + (drawingArea.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
+            it.mMatrix.preTranslate(
+                    drawingArea.centerX() + mInnerRadius + (drawingArea.centerX() - mInnerRadius) / 2 - it.mIcon.getWidth() / 2,
                     drawingArea.centerY() - it.mIcon.getHeight() / 2);
 
             Bitmap rotatedIcon  = rotateBitmap(it.mIcon, 90);
@@ -800,9 +731,6 @@ public class PieMenuView extends ViewGroup {
 
         @Override
         public boolean onDown(MotionEvent e) {
-            // The user is interacting with the pie, so we want to turn on acceleration
-            // so that the interaction is smooth.
-            mPieView.accelerate();
             if (isAnimationRunning()) {
                 stopScrolling();
             }
@@ -813,17 +741,14 @@ public class PieMenuView extends ViewGroup {
         public boolean onSingleTapUp(MotionEvent e) {
             float tapX = e.getX();
             float tapY = e.getY();
-//            Log.d("tag", "onSingleTapUp (" + tapX + ", " + tapY + ")");
-//            Log.d("tag", "onSingleTapUp mRotation: " + mPieRotation);
             float centerX = mPieBounds.centerX();
             float centerY = mPieBounds.centerY();
-//            Log.d("tag", "onSingleTapUp Center(" + centerX+ ", " + centerY+ ")");
 
             double angle = angleBetweenVectors(centerX, centerY, tapX, tapY, centerX, centerY, centerX + 100, centerY);
 
             if (tapY > centerY)
                 angle = 360 - angle;
-//            Log.d("tag", "onSingleTapUp angle: " + angle);
+
             int selectedSlice = findSliceByAngle(mPieRotation, (int) Math.round(angle));
             setSelectedItem(selectedSlice, true);
             mPieView.invalidate();
@@ -855,10 +780,8 @@ public class PieMenuView extends ViewGroup {
     //          HELPERS METHODS
     private int findSliceByAngle(int pieRotation, int angle) {
         int sliceAngle = (pieRotation + angle) % 360;
-//        Log.d("tag", "findSelectedSlice sliceAngle: " + sliceAngle);
         for (int i = 0; i < mData.size(); i++) {
             Item it = mData.get(i);
-//            Log.d("tag", "it[" + i+ "] startAngle: " + it.mStartAngle + ", endAngle: " + it.mEndAngle);
             if (it.mStartAngle <= sliceAngle && sliceAngle <= it.mEndAngle) {
                 return i;
             }
@@ -916,11 +839,24 @@ public class PieMenuView extends ViewGroup {
         double vectorBLength = vectorLength(vectorBstartX, vectorBstartY, vectorBendX, vectorBendY);
 
         double vectorsMul = vectorsMultiplication(vectorAendX - vectorAstartX, vectorAendY - vectorAstartY,
-                                                  vectorBendX - vectorBstartX, vectorBendY - vectorBstartY);
+                vectorBendX - vectorBstartX, vectorBendY - vectorBstartY);
         double angleCos = 0;
         if (vectorALength != 0 && vectorBLength != 0) {
             angleCos = vectorsMul / (vectorALength * vectorBLength);
         }
         return Math.toDegrees(Math.acos(angleCos));
+    }
+
+    /**
+     * This method converts dp unit to equivalent pixels, depending on device density.
+     *
+     * @param dp A value in dp (density independent pixels) unit. Which we need to convert into pixels
+     * @return A float value to represent px equivalent to dp depending on device density
+     */
+    private float convertDpToPixel(float dp){
+        Resources resources = getContext().getResources();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        float px = dp * (metrics.densityDpi / 160f);
+        return px;
     }
 }

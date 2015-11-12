@@ -1,20 +1,14 @@
 <resources>
     <declare-styleable name="PieMenuView">
         <attr name="autoCenterPointerInSlice" format="boolean"/>
-        <attr name="highlightStrength" format="float"/>
         <attr name="linesWidth" format="dimension"/>
         <attr name="linesColor" format="color"/>
         <attr name="segmentsColor" format="color"/>
         <attr name="selectedItemColor" format="color"/>
         <attr name="iconWidth" format="dimension"/>
         <attr name="iconHeight" format="dimension"/>
-
-        <attr name="pieStyle" format="enum">
-            <enum name="full" value="0"/>
-            <enum name="half" value="1"/>
-            <enum name="quarter" value="2"/>
-        </attr>
-
+        <attr name="shadowRadius" format="dimension"/>
+        <attr name="centricAngle" format="integer"/>
         <attr name="pieRotation" format="integer"/>
         <attr name="innerRadius" format="dimension"/>
     </declare-styleable>
