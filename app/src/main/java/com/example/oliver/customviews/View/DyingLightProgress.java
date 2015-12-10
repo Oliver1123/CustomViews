@@ -10,10 +10,10 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Pair;
+import android.util.TypedValue;
 import android.view.View;
 
 import com.example.oliver.customviews.R;
@@ -27,53 +27,53 @@ import java.util.List;
  * Created by oliver on 09.12.15.
  */
 public class DyingLightProgress extends View {
+    private final int ANIMATION_PART_DURATION = 500;
 
-    private int mLinesColor  = Color.BLACK;
     private Paint mLinesPaint, mAnimatedPaint;
     private PlaceHolder mCentralPlaceHolder;
     private AnimationManager mAnimationManager;
     private List<PlaceHolder> mItems;
+
+    private int mColor;
+    private float mItemWidth, mItemHeight;
 
     public DyingLightProgress(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
-                R.styleable.PieMenuView,
+                R.styleable.DyingLightProgress,
                 0, 0
         );
         try {
-            // Retrieve the values from the TypedArray and store into
-            // fields of this class.
-//            mLinesColor         = a.getColor(R.styleable.DyingLightProgress_linesColor, Color.BLACK);
+            mColor  = a.getColor(R.styleable.DyingLightProgress_itemColor, Color.BLACK);
+            mItemWidth = a.getDimension(R.styleable.DyingLightProgress_itemWidth,
+                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
+            mItemHeight = a.getDimension(R.styleable.DyingLightProgress_itemHeight,
+                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
         } finally {
-            // release the TypedArray so that it can be reused.
             a.recycle();
         }
     }
 
     private void initAnimation() {
-        int itemWidth = getWidth() / 10;
-        int itemHeight = getHeight() / 10;
-        int partDuration = 500;
+        mCentralPlaceHolder = new PlaceHolder(getWidth() / 2 - mItemWidth * 2, getWidth() / 2 - mItemHeight * 2,
+                        mItemWidth * 4, mItemHeight * 4);
 
-        mCentralPlaceHolder = new PlaceHolder(getWidth() / 2 - itemWidth * 2, getWidth() / 2 - itemHeight * 2,
-                        itemWidth * 4, itemHeight * 4);
-
-        ObjectAnimator alphaAnimation = ObjectAnimator.ofInt(mAnimatedPaint, "alpha", 250, 100);
+        ObjectAnimator alphaAnimation = ObjectAnimator.ofInt(mAnimatedPaint, "alpha", 100, 200);
         alphaAnimation.setDuration(250);
         alphaAnimation.setRepeatCount(5);
         alphaAnimation.setRepeatMode(ValueAnimator.REVERSE);
 
 
-        mItems = createItems(getWidth(), getHeight(), itemWidth, itemHeight);
+        mItems = createItems(getWidth(), getHeight(), mItemWidth, mItemHeight);
 
         List<AnimatorSet> animationTo = new ArrayList<>();
         List<AnimatorSet> animationFrom = new ArrayList<>();
 
         for (PlaceHolder placeHolder : mItems) {
-            animationTo.add(createAnimTraceTo(placeHolder, partDuration));
-            animationFrom.add(createAnimTraceFrom(placeHolder, partDuration));
+            animationTo.add(createAnimTraceTo(placeHolder, ANIMATION_PART_DURATION));
+            animationFrom.add(createAnimTraceFrom(placeHolder, ANIMATION_PART_DURATION));
         }
 
         mAnimationManager = new AnimationManager(animationFrom, animationTo, alphaAnimation);
@@ -81,14 +81,14 @@ public class DyingLightProgress extends View {
 
     }
 
-    private List<PlaceHolder> createItems(int _areaWidth, int _areaHeight, int _itemWidth, int _itemHeight) {
+    private List<PlaceHolder> createItems(float _areaWidth, float _areaHeight, float _itemWidth, float _itemHeight) {
 
         List<PlaceHolder> result = new ArrayList<>();
 
-        int areaCenterX = _areaWidth / 2;
-        int areaCenterY = _areaHeight / 2;
-        int itemHalfHeight = _itemHeight / 2;
-        int itemHalfWidth = _itemWidth / 2;
+        float areaCenterX = _areaWidth / 2;
+        float areaCenterY = _areaHeight / 2;
+        float itemHalfHeight = _itemHeight / 2;
+        float itemHalfWidth = _itemWidth / 2;
 
         PlaceHolder placeHolder = null;
 
@@ -131,24 +131,23 @@ public class DyingLightProgress extends View {
         return result;
     }
 
-    public int getLinesColor() {
-        return mLinesColor;
+    public int getColor() {
+        return mColor;
     }
 
-    public void setLinesColor(int _linesColor) {
-        mLinesColor = _linesColor;
+    public void setColor(int _color) {
+        mColor = _color;
         invalidate();
         requestLayout();
     }
 
     private void init() {
-//        Log.d("tag", "init w: " + getWidth() + " h: " + getHeight());
         mLinesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mLinesPaint.setColor(mLinesColor);
+        mLinesPaint.setColor(mColor);
         mLinesPaint.setStrokeWidth(2);
 
         mAnimatedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mAnimatedPaint.setColor(mLinesColor);
+        mAnimatedPaint.setColor(mColor);
         mAnimatedPaint.setStrokeWidth(2);
     }
 
@@ -182,10 +181,11 @@ public class DyingLightProgress extends View {
         }
     }
 
-    private void drawItem(Canvas _canvas, PlaceHolder _holder, Paint _paint) {
+    protected void drawItem(Canvas _canvas, PlaceHolder _holder, Paint _paint) {
         _canvas.drawRect(_holder.getLeft(), _holder.getTop(),
                 _holder.getRight(), _holder.getBottom(), _paint);
 //        _canvas.drawCircle(_holder.getCenterX(), _holder.getCenterY(), _holder.getWidth() / 2, _paint);
+
 //        _paint.setStyle(Paint.Style.STROKE);
 //        _paint.setStrokeWidth(4);
 //        _canvas.drawArc(new RectF(_holder.getLeft(), _holder.getTop(), _holder.getRight(), _holder.getBottom()), 0, 360, true, _paint );
@@ -198,14 +198,14 @@ public class DyingLightProgress extends View {
 
         AnimatorSet result = new AnimatorSet();
 
-        Pair<Integer, Integer> pos0 = _target.getTrackPoints().get(0);
+        Pair<Float, Float> pos0 = _target.getTrackPoints().get(0);
 
         for (int i = 1; i < _target.getTrackPoints().size(); i++) {
-            Pair<Integer, Integer> pos = _target.getTrackPoints().get(i);
+            Pair<Float, Float> pos = _target.getTrackPoints().get(i);
 
-            ObjectAnimator animatorX = ObjectAnimator.ofInt(_target, "left", pos0.first, pos.first);
+            ObjectAnimator animatorX = ObjectAnimator.ofFloat(_target, "left", pos0.first, pos.first);
             animatorX.setDuration(_partDuration);
-            ObjectAnimator animatorY = ObjectAnimator.ofInt(_target, "top", pos0.second, pos.second);
+            ObjectAnimator animatorY = ObjectAnimator.ofFloat(_target, "top", pos0.second, pos.second);
             animatorY.setDuration(_partDuration);
 
             traceX.add(animatorX);
@@ -222,16 +222,16 @@ public class DyingLightProgress extends View {
     protected AnimatorSet createAnimTraceFrom(PlaceHolder _target, int _partDuration) {
         List<ObjectAnimator> traceX = new ArrayList<>();
         List<ObjectAnimator> traceY = new ArrayList<>();
-        List<Pair<Integer, Integer>> trackPoints = _target.getTrackPoints();
+        List<Pair<Float, Float>> trackPoints = _target.getTrackPoints();
 
-        Pair<Integer, Integer> posN = trackPoints.get(trackPoints.size() - 1);
+        Pair<Float, Float> posN = trackPoints.get(trackPoints.size() - 1);
 
         for (int i = trackPoints.size() - 2; i >= 0; i--) {
-            Pair<Integer, Integer> pos = trackPoints.get(i);
+            Pair<Float, Float> pos = trackPoints.get(i);
 
-            ObjectAnimator animatorX = ObjectAnimator.ofInt(_target, "left", posN.first, pos.first);
+            ObjectAnimator animatorX = ObjectAnimator.ofFloat(_target, "left", posN.first, pos.first);
             animatorX.setDuration(_partDuration);
-            ObjectAnimator animatorY = ObjectAnimator.ofInt(_target, "top", posN.second, pos.second);
+            ObjectAnimator animatorY = ObjectAnimator.ofFloat(_target, "top", posN.second, pos.second);
             animatorY.setDuration(_partDuration);
 
             traceX.add(animatorX);
@@ -248,12 +248,12 @@ public class DyingLightProgress extends View {
         return result;
     }
 
-    private class PlaceHolder {
-        private int mWidth, mHeight;
-        private int mTop, mLeft;
-        private List<Pair<Integer, Integer>> mTrackPoints;
+    final class PlaceHolder {
+        private float mWidth, mHeight;
+        private float mTop, mLeft;
+        private List<Pair<Float, Float>> mTrackPoints;
 
-        public PlaceHolder(int _left, int _top, int _width, int _height) {
+        public PlaceHolder(float _left, float _top, float _width, float _height) {
             mLeft = _left;
             mTop = _top;
             mWidth = _width;
@@ -261,56 +261,56 @@ public class DyingLightProgress extends View {
         }
 
 
-        public int getWidth() {
+        public float getWidth() {
             return mWidth;
         }
 
-        public int getHeight() {
+        public float getHeight() {
             return mHeight;
         }
 
-        public int getTop() {
+        public float getTop() {
             return mTop;
         }
 
-        public void setTop (int _top) {
+        public void setTop (float _top) {
             mTop = _top;
         }
 
-        public int getLeft() {
+        public float getLeft() {
             return mLeft;
         }
 
-        public void setLeft (int _left) {
+        public void setLeft (float _left) {
             mLeft = _left;
         }
 
-        public int getRight() {
+        public float getRight() {
             return mLeft + mWidth;
         }
 
-        public int getBottom() {
+        public float getBottom() {
             return mTop + mHeight;
         }
 
-        public int getCenterX() {
+        public float getCenterX() {
             return mLeft + mWidth / 2;
         }
 
-        public int getCenterY() {
+        public float getCenterY() {
             return mTop + mHeight / 2;
         }
 
 
-        public List<Pair<Integer, Integer>> getTrackPoints() {
+        public List<Pair<Float, Float>> getTrackPoints() {
             return mTrackPoints;
         }
 
-        public void setTrackPoints(List<Pair<Integer, Integer>> _trackPoints) {
+        public void setTrackPoints(List<Pair<Float, Float>> _trackPoints) {
             mTrackPoints = _trackPoints;
         }
 
-        public void setTrackPoints(Pair<Integer, Integer>... points) {
+        public void setTrackPoints(Pair<Float, Float>... points) {
             mTrackPoints = Arrays.asList(points);
         }
     }

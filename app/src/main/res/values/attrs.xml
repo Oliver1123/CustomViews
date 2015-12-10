@@ -14,6 +14,8 @@
     </declare-styleable>
 
     <declare-styleable name="DyingLightProgress">
-        <!--<attr name="linesColor" format="color"/>-->
+        <attr name="itemColor" format="color"/>
+        <attr name="itemWidth" format="dimension"/>
+        <attr name="itemHeight" format="dimension"/>
     </declare-styleable>
 </resources>

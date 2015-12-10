@@ -2,6 +2,7 @@
                 xmlns:tools="http://schemas.android.com/tools"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
                 android:paddingLeft="@dimen/activity_horizontal_margin"
                 android:paddingRight="@dimen/activity_horizontal_margin"
                 android:paddingTop="@dimen/activity_vertical_margin"
@@ -12,6 +13,10 @@
     android:layout_height="100dp"
     android:padding="10dp"
     android:id="@+id/progress"
-    android:layout_centerInParent="true"/>
+    android:layout_centerInParent="true"
+
+    app:itemColor="@android:color/holo_red_light"
+    app:itemWidth="10dp"
+    app:itemHeight="10dp"/>
 
 </RelativeLayout>
