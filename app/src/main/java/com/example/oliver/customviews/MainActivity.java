@@ -1,10 +1,12 @@
 package com.example.oliver.customviews;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
+import com.example.oliver.customviews.View.DyingLightProgress;
 import com.example.oliver.customviews.View.PieMenuView;
 
 public class MainActivity extends AppCompatActivity{
@@ -42,6 +44,12 @@ public class MainActivity extends AppCompatActivity{
         pie2.addItem(R.mipmap.ic_launcher);
         pie2.addItem(R.drawable.ic_map_main);
 
+        findViewById(R.id.btnProgressActivity).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getBaseContext(), ProgressActivity.class));
+            }
+        });
     }
 
 

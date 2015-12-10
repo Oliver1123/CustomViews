@@ -3,6 +3,13 @@
               android:layout_width="match_parent"
               xmlns:app="http://schemas.android.com/apk/res-auto"
               android:orientation="vertical">
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnProgressActivity"
+        android:layout_centerHorizontal="true"
+        android:text="Progress Activity"/>
+
     <com.example.oliver.customviews.View.PieMenuView
         android:id="@+id/Pie1"
         android:layout_width="match_parent"
@@ -21,7 +28,8 @@
         app:linesWidth="3dp"
 
         android:layout_centerHorizontal="true"
-        android:layout_alignParentTop="true"/>
+        android:layout_alignParentTop="false"
+        android:layout_below="@+id/btnProgressActivity"/>
 
     <com.example.oliver.customviews.View.PieMenuView
         android:id="@+id/Pie2"
