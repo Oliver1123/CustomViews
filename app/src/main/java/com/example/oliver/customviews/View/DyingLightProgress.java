@@ -32,7 +32,7 @@ import java.util.List;
  * Created by oliver on 09.12.15.
  */
 public class DyingLightProgress extends View {
-    private final int ANIMATION_PART_DURATION = 500;
+    private final int DEFAULT_ANIMATION_PART_DURATION = 500;
     public static final int ITEM_TYPE_SQUARE      = 0;
     public static final int ITEM_TYPE_CIRCLE      = 1;
     public static final int ITEM_TYPE_DRAWABLE    = 2;
@@ -46,6 +46,7 @@ public class DyingLightProgress extends View {
     private float mItemWidth, mItemHeight;
     private int mItemType;
     private Bitmap mIcon;
+    private int mAnimPartDuration;
 
     public DyingLightProgress(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -63,9 +64,68 @@ public class DyingLightProgress extends View {
                     TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
 
             mItemType = a.getInt(R.styleable.DyingLightProgress_itemType, ITEM_TYPE_SQUARE);
+            mAnimPartDuration = a.getInt(R.styleable.DyingLightProgress_animPartDuration, DEFAULT_ANIMATION_PART_DURATION);
         } finally {
             a.recycle();
         }
+    }
+
+    public int getColor() {
+        return mColor;
+    }
+
+    public void setColor(int _color) {
+        mColor = _color;
+        invalidate();
+        requestLayout();
+    }
+
+    public int getItemType() {
+        return mItemType;
+    }
+
+    public void setItemType (int _itemType) {
+        if (_itemType != ITEM_TYPE_DRAWABLE &&
+                _itemType != ITEM_TYPE_CIRCLE &&
+                _itemType != ITEM_TYPE_SQUARE)
+            throw new IllegalArgumentException("Item type must be one of the constant valued");
+        mItemType = _itemType;
+        invalidate();
+        requestLayout();
+    }
+    public float getItemHeight() {
+        return mItemHeight;
+    }
+
+    public void setItemHeight(float _itemHeight) {
+        if (_itemHeight < 0)
+            throw new IllegalArgumentException("Item height cannot be negative");
+        mItemHeight = _itemHeight;
+        invalidate();
+        requestLayout();
+    }
+
+    public float getItemWidth() {
+        return mItemWidth;
+    }
+
+    public void setItemWidth(float _itemWidth) {
+        if (_itemWidth < 0)
+            throw new IllegalArgumentException("Item width cannot be negative");
+        mItemWidth = _itemWidth;
+        invalidate();
+        requestLayout();
+    }
+
+    public int getAnimPartDuration() {
+        return mAnimPartDuration;
+    }
+
+    public void setAnimPartDuration(int _animPartDuration) {
+        if (_animPartDuration < 0)
+            throw new IllegalArgumentException("Anim part duration cannot be negative");
+        mAnimPartDuration = _animPartDuration;
+        initAnimation();
     }
 
     public void setIcon (Resources _res, int _id) {
@@ -73,20 +133,16 @@ public class DyingLightProgress extends View {
     }
 
     public void setIcon(Bitmap icon) {
-//        mIcon = Bitmap.createScaledBitmap(icon, (int) mItemWidth, (int) mItemHeight, true);
         mIcon = icon;
         mItemType = ITEM_TYPE_DRAWABLE;
     }
 
-    public void setItemType (int _itemType) {
-        mItemType = _itemType;
-    }
     private void initAnimation() {
         mCentralPlaceHolder = new PlaceHolder(getWidth() / 2 - mItemWidth * 2, getWidth() / 2 - mItemHeight * 2,
                         mItemWidth * 4, mItemHeight * 4);
 
         ObjectAnimator alphaAnimation = ObjectAnimator.ofInt(mAnimatedPaint, "alpha", 100, 200);
-        alphaAnimation.setDuration(250);
+        alphaAnimation.setDuration(mAnimPartDuration / 2);
         alphaAnimation.setRepeatCount(5);
         alphaAnimation.setRepeatMode(ValueAnimator.REVERSE);
 
@@ -97,13 +153,15 @@ public class DyingLightProgress extends View {
         List<AnimatorSet> animationFrom = new ArrayList<>();
 
         for (PlaceHolder placeHolder : mItems) {
-            animationTo.add(createAnimTraceTo(placeHolder, ANIMATION_PART_DURATION));
-            animationFrom.add(createAnimTraceFrom(placeHolder, ANIMATION_PART_DURATION));
+            animationTo.add(createAnimTraceTo(placeHolder, mAnimPartDuration));
+            animationFrom.add(createAnimTraceFrom(placeHolder, mAnimPartDuration));
         }
 
+        if (mAnimationManager != null) {
+            mAnimationManager.stopAnimation();
+        }
         mAnimationManager = new AnimationManager(animationFrom, animationTo, alphaAnimation);
         mAnimationManager.startAnimation();
-
     }
 
     private List<PlaceHolder> createItems(float _areaWidth, float _areaHeight, float _itemWidth, float _itemHeight) {
@@ -156,15 +214,7 @@ public class DyingLightProgress extends View {
         return result;
     }
 
-    public int getColor() {
-        return mColor;
-    }
 
-    public void setColor(int _color) {
-        mColor = _color;
-        invalidate();
-        requestLayout();
-    }
 
     private void init() {
         mLinesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -278,6 +328,22 @@ public class DyingLightProgress extends View {
         return result;
     }
 
+    public void stopAnimation() {
+        mAnimationManager.stopAnimation();
+    }
+
+    public void startAnimation() {
+        for (PlaceHolder item: mItems) {
+            Pair<Float, Float> startPosition = item.getTrackPoints().get(0);
+            item.setLeft(startPosition.first);
+            item.setTop(startPosition.second);
+        }
+        mAnimationManager.startAnimation();
+    }
+
+    public boolean isAnimationRunning() {
+        return mAnimationManager.started;
+    }
     final class PlaceHolder {
         private float mWidth, mHeight;
         private float mTop, mLeft;
@@ -349,7 +415,9 @@ public class DyingLightProgress extends View {
         private List<AnimatorSet> mAnimationFrom, mAnimationTo;
         private ObjectAnimator mPaintAnim;
         private Paint mAnimatedPaint;
-        private boolean collapsed;
+        private boolean collapsed, started;
+        private final Handler h = new Handler();
+        private final Runnable invalidateRunnable;
 
         public AnimationManager(List<AnimatorSet> _animationFrom, List<AnimatorSet> _animationTo, ObjectAnimator _paintAnim) {
             mAnimationFrom = _animationFrom;
@@ -364,6 +432,14 @@ public class DyingLightProgress extends View {
                     endPaintAnimation();
                 }
             });
+
+            invalidateRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    invalidate();
+                    h.postDelayed(this, 10);
+                }
+            };
         }
 
 
@@ -378,7 +454,7 @@ public class DyingLightProgress extends View {
             mAnimationTo.get(mAnimationTo.size() - 1).addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
-//                    super.onAnimationEnd(animation);
+                    super.onAnimationEnd(animation);
                     endAnimationTo();
                 }
             });
@@ -402,37 +478,47 @@ public class DyingLightProgress extends View {
         }
 
         private void endAnimationTo(){
-            collapsed = true;
-            mPaintAnim.start();
+            if (started) {
+                collapsed = true;
+                mPaintAnim.start();
+            }
         }
 
         private void endAnimationFrom() {
-            collapsed = false;
-            mPaintAnim.start();
+            if (started) {
+                collapsed = false;
+                mPaintAnim.start();
+            }
         }
 
 
         private void endPaintAnimation() {
-            if (collapsed) {
-                collapsed = false;
-                startAnimationFrom(250);
-            } else {
-                startAnimationTo(250);
+            if (started) {
+                if (collapsed) {
+                    collapsed = false;
+                    startAnimationFrom(mAnimPartDuration / 2);
+                } else {
+                    startAnimationTo(mAnimPartDuration / 2);
+                }
             }
         }
 
         public void startAnimation() {
-            final Handler h = new Handler();
-            final Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    invalidate();
-                    h.postDelayed(this, 10);
-                }
-            };
-            r.run();
+            invalidateRunnable.run();
             mPaintAnim.start();
+            started = true;
         }
 
+        public void stopAnimation(){
+            started = false;
+            h.removeCallbacks(invalidateRunnable);
+            for (AnimatorSet anim: mAnimationTo) {
+                anim.cancel();
+            }
+            for (AnimatorSet anim: mAnimationFrom) {
+                anim.cancel();
+            }
+            mPaintAnim.cancel();
+        }
     }
 }

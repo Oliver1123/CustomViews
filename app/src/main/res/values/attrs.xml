@@ -21,6 +21,7 @@
             <enum name="square" value="0"/>
             <enum name="circle" value="1"/>
         </attr>
+        <attr name="animPartDuration" format="integer"/>
 
     </declare-styleable>
 </resources>

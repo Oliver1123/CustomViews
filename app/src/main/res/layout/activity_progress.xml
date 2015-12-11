@@ -9,17 +9,17 @@
                 android:paddingBottom="@dimen/activity_vertical_margin"
                 tools:context="com.example.oliver.customviews.ProgressActivity">
 
-<com.example.oliver.customviews.View.DyingLightProgress
-    android:layout_width="150dp"
-    android:layout_height="150dp"
-    android:padding="10dp"
-    android:id="@+id/progress"
+    <com.example.oliver.customviews.View.DyingLightProgress
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:padding="10dp"
+        android:id="@+id/progress"
 
-    app:itemColor="@android:color/black"
-    app:itemWidth="15dp"
-    app:itemHeight="15dp"
-    app:itemType="circle"
-    android:layout_centerHorizontal="true"/>
+        app:itemColor="@android:color/black"
+        app:itemWidth="15dp"
+        app:itemHeight="15dp"
+        app:itemType="circle"
+        android:layout_centerHorizontal="true"/>
 
 
     <com.example.oliver.customviews.View.DyingLightProgress

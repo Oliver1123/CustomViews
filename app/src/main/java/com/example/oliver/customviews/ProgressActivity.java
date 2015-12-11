@@ -16,12 +16,21 @@ public class ProgressActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_progress);
-        DyingLightProgress progress3 = (DyingLightProgress) findViewById(R.id.progress3);
+        final DyingLightProgress progress3 = (DyingLightProgress) findViewById(R.id.progress3);
         progress3.setIcon(getResources(), R.drawable.batman_icon);
         progress3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ((DyingLightProgress)v).setItemType(DyingLightProgress.ITEM_TYPE_CIRCLE);
+//                ((DyingLightProgress)v).setItemType(DyingLightProgress.ITEM_TYPE_CIRCLE);
+                int animPartDuration = progress3.getAnimPartDuration();
+                progress3.setAnimPartDuration(100);
+//                ((DyingLightProgress)v).setAnimPartDuration(250);
+
+//               if (progress3.isAnimationRunning()) {
+//                   progress3.stopAnimation();
+//               } else {
+//                   progress3.startAnimation();
+//               }
             }
         });
     }
