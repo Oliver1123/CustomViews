@@ -18,6 +18,7 @@
     app:itemColor="@android:color/black"
     app:itemWidth="15dp"
     app:itemHeight="15dp"
+    app:itemType="circle"
     android:layout_centerHorizontal="true"/>
 
 
@@ -31,5 +32,17 @@
         app:itemColor="@android:color/holo_red_light"
         app:itemWidth="10dp"
         app:itemHeight="10dp"/>
+
+    <com.example.oliver.customviews.View.DyingLightProgress
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:padding="10dp"
+        android:id="@+id/progress3"
+
+        app:itemColor="@android:color/black"
+        app:itemWidth="20dp"
+        app:itemHeight="20dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"/>
 
 </RelativeLayout>

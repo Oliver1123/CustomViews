@@ -6,10 +6,15 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Pair;
@@ -28,6 +33,9 @@ import java.util.List;
  */
 public class DyingLightProgress extends View {
     private final int ANIMATION_PART_DURATION = 500;
+    public static final int ITEM_TYPE_SQUARE      = 0;
+    public static final int ITEM_TYPE_CIRCLE      = 1;
+    public static final int ITEM_TYPE_DRAWABLE    = 2;
 
     private Paint mLinesPaint, mAnimatedPaint;
     private PlaceHolder mCentralPlaceHolder;
@@ -36,6 +44,8 @@ public class DyingLightProgress extends View {
 
     private int mColor;
     private float mItemWidth, mItemHeight;
+    private int mItemType;
+    private Bitmap mIcon;
 
     public DyingLightProgress(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -51,11 +61,26 @@ public class DyingLightProgress extends View {
                     TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
             mItemHeight = a.getDimension(R.styleable.DyingLightProgress_itemHeight,
                     TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
+
+            mItemType = a.getInt(R.styleable.DyingLightProgress_itemType, ITEM_TYPE_SQUARE);
         } finally {
             a.recycle();
         }
     }
 
+    public void setIcon (Resources _res, int _id) {
+        setIcon(BitmapFactory.decodeResource(_res, _id));
+    }
+
+    public void setIcon(Bitmap icon) {
+//        mIcon = Bitmap.createScaledBitmap(icon, (int) mItemWidth, (int) mItemHeight, true);
+        mIcon = icon;
+        mItemType = ITEM_TYPE_DRAWABLE;
+    }
+
+    public void setItemType (int _itemType) {
+        mItemType = _itemType;
+    }
     private void initAnimation() {
         mCentralPlaceHolder = new PlaceHolder(getWidth() / 2 - mItemWidth * 2, getWidth() / 2 - mItemHeight * 2,
                         mItemWidth * 4, mItemHeight * 4);
@@ -182,14 +207,19 @@ public class DyingLightProgress extends View {
     }
 
     protected void drawItem(Canvas _canvas, PlaceHolder _holder, Paint _paint) {
-        _canvas.drawRect(_holder.getLeft(), _holder.getTop(),
-                _holder.getRight(), _holder.getBottom(), _paint);
-//        _canvas.drawCircle(_holder.getCenterX(), _holder.getCenterY(), _holder.getWidth() / 2, _paint);
-
-//        _paint.setStyle(Paint.Style.STROKE);
-//        _paint.setStrokeWidth(4);
-//        _canvas.drawArc(new RectF(_holder.getLeft(), _holder.getTop(), _holder.getRight(), _holder.getBottom()), 0, 360, true, _paint );
-//        _paint.setStrokeWidth(2);
+        switch (mItemType) {
+            case ITEM_TYPE_SQUARE:
+                _canvas.drawRect(_holder.getLeft(), _holder.getTop(),
+                        _holder.getRight(), _holder.getBottom(), _paint);
+                break;
+            case ITEM_TYPE_CIRCLE:
+                _canvas.drawCircle(_holder.getCenterX(), _holder.getCenterY(), _holder.getWidth() / 2, _paint);
+                break;
+            case ITEM_TYPE_DRAWABLE:
+                _canvas.drawBitmap(mIcon, null,
+                        new Rect((int) _holder.getLeft(), (int) _holder.getTop(), (int) _holder.getRight(), (int) _holder.getBottom()), _paint);
+                break;
+        }
     }
 
     protected AnimatorSet createAnimTraceTo(PlaceHolder _target,int _partDuration) {
